@@ -15,16 +15,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
 
 :root {
-  --bg: #0f0f13;
-  --bg2: #16161d;
-  --surface: #1e1e28;
-  --surface2: #26263a;
-  --surface3: #2e2e45;
-  --border: rgba(255,255,255,.08);
-  --border2: rgba(255,255,255,.14);
-  --text: #f0eef8;
-  --text2: #9896b8;
-  --text3: #5a5878;
+  --bg: #0a0e1a;
+  --bg2: #0f1525;
+  --surface: #1a2035;
+  --surface2: #1e2a45;
+  --surface3: #243252;
+  --border: rgba(100,140,220,.12);
+  --border2: rgba(100,160,255,.20);
+  --text: #e8eeff;
+  --text2: #8fa8d8;
+  --text3: #4a6090;
   --accent: #c8a06a;
   --accent2: #7eb3f5;
   --up: #f87171;
@@ -33,6 +33,8 @@
   --to: #60a5fa;
   --ko: #34d399;
   --ye: #c084fc;
+  --loan: #fb7185;
+  --extra: #34d399;
   --glow-ki: rgba(245,158,11,.15);
   --glow-to: rgba(96,165,250,.15);
   --glow-ko: rgba(52,211,153,.15);
@@ -366,8 +368,12 @@ tbody tr:last-child td { border-bottom:none; }
   /* body: 스크롤 허용 */
   body { overflow: auto; display: block; }
 
-  /* 탑바 축소 */
-  .topbar { height: 52px; padding: 0 16px; }
+  /* 탑바 — 노치/다이나믹아일랜드 safe-area 반영 */
+  .topbar {
+    height: auto;
+    padding: calc(env(safe-area-inset-top, 0px) * 0.8 + 8px) 16px 10px;
+    min-height: 48px;
+  }
   .brand h1 { font-size: 14px; }
   .brand-icon { width: 28px; height: 28px; font-size: 14px; }
   .topbar::after { display: none; }
@@ -462,6 +468,20 @@ tbody tr:last-child td { border-bottom:none; }
 }
 
 /* ── 소형 모바일 (≤390px) ── */
+
+/* ── 가로 모드 (landscape) — 달력 좌측 safe-area 반영 ── */
+@media (orientation: landscape) and (max-width: 900px) {
+  .topbar {
+    padding-left: max(20px, calc(env(safe-area-inset-left, 0px) + 14px));
+    padding-right: max(16px, calc(env(safe-area-inset-right, 0px) + 12px));
+  }
+  .left-inner {
+    padding-left: max(20px, calc(env(safe-area-inset-left, 0px) + 14px));
+  }
+  .right-inner {
+    padding-right: max(16px, calc(env(safe-area-inset-right, 0px) + 12px));
+  }
+}
 @media (max-width: 390px) {
   .kpi-val { font-size: 14px; }
   .broker-pills { grid-template-columns: 1fr 1fr; }
@@ -470,6 +490,110 @@ tbody tr:last-child td { border-bottom:none; }
   .month-lbl { font-size: 13px; }
   .hist-grid { grid-template-columns: 1fr; }
 }
+
+/* ── 금액 가리기 버튼 ── */
+.hide-amt-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text2); font-size:12px; font-weight:600; padding:6px 12px; border-radius:8px; cursor:pointer; font-family:inherit; transition:all .15s; white-space:nowrap; }
+.hide-amt-btn:hover { background:var(--surface3); color:var(--text); }
+.hide-amt-btn.active { background:rgba(248,113,113,.15); border-color:rgba(248,113,113,.3); color:#f87171; }
+/* ── 미니 수익 달력 ── */
+.profit-cal-wrap { background:var(--surface); border:1.5px solid rgba(96,165,250,.3); border-radius:12px; padding:10px; margin-bottom:8px; }
+.profit-cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.profit-cal-nav button { background:var(--surface2); border:1px solid var(--border); color:var(--text2); width:24px; height:24px; border-radius:6px; font-size:13px; cursor:pointer; }
+.profit-cal-month { font-family:"DM Mono",monospace; font-size:12px; font-weight:700; color:var(--accent2); }
+.profit-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
+.pcal-dow { font-size:9px; font-weight:700; color:var(--text3); text-align:center; padding:2px 0; }
+.pcal-day { font-size:11px; text-align:center; padding:4px 2px; border-radius:5px; cursor:pointer; color:var(--text2); position:relative; }
+.pcal-day:hover { background:var(--surface3); }
+.pcal-day.has-profit { color:#f87171; font-weight:700; }
+.pcal-day.has-profit::after { content:''; position:absolute; bottom:1px; left:50%; transform:translateX(-50%); width:3px; height:3px; border-radius:50%; background:#f87171; }
+.pcal-day.pselected { background:var(--accent2); color:#0a0e1a; font-weight:700; }
+.pcal-day.ptoday { outline:1px solid var(--accent2); }
+.pcal-day.other { color:var(--text3); }
+/* ── has-profit 상단 달력 점 ── */
+.cal-day.has-profit { position:relative; }
+.cal-day.has-profit::before { content:''; position:absolute; bottom:2px; left:calc(50% + 4px); transform:translateX(-50%); width:3px; height:3px; border-radius:50%; background:#f87171; z-index:2; }
+/* ── 일간 수익 저장 버튼 ── */
+.profit-save-btn { width:100%; padding:13px; background:linear-gradient(135deg,#5b8fd4,#3a6abf); color:#fff; font-family:inherit; font-size:14px; font-weight:800; border:none; border-radius:12px; cursor:pointer; margin-top:8px; letter-spacing:-.2px; box-shadow:0 4px 20px rgba(91,143,212,.3); transition:all .2s; }
+.profit-save-btn:hover { transform:translateY(-1px); box-shadow:0 6px 26px rgba(91,143,212,.4); }
+
+/* ── 일괄 입력 ── */
+.bulk-wrap { background:var(--surface); border:1.5px solid var(--accent2); border-radius:12px; padding:12px 13px; margin-bottom:10px; }
+.bulk-tabs { display:flex; gap:3px; margin-bottom:10px; background:var(--surface2); border-radius:8px; padding:3px; }
+.bulk-tab { flex:1; padding:6px 4px; font-size:11px; font-weight:700; cursor:pointer; border:none; background:transparent; border-radius:6px; transition:all .15s; font-family:inherit; }
+.bulk-tab.ki { color:var(--ki); } .bulk-tab.to { color:var(--to); } .bulk-tab.ko { color:var(--ko); }
+.bulk-tab.on { background:var(--surface3); box-shadow:0 1px 4px rgba(0,0,0,.3); }
+.bulk-panel { display:none; } .bulk-panel.on { display:block; }
+.bulk-broker-label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+.bulk-broker-label.ki { color:var(--ki); } .bulk-broker-label.to { color:var(--to); } .bulk-broker-label.ko { color:var(--ko); }
+.bulk-textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:12px; font-family:"DM Mono",monospace; padding:9px 11px; resize:vertical; outline:none; line-height:1.7; box-sizing:border-box; }
+.bulk-textarea:focus { border-color:var(--accent2); }
+.bulk-textarea::placeholder { color:var(--text3); font-family:inherit; font-size:11px; }
+.bulk-apply-btn { width:100%; margin-top:8px; padding:10px; background:var(--accent2); border:none; color:#0a0e1a; font-size:13px; font-weight:700; border-radius:8px; cursor:pointer; font-family:inherit; transition:opacity .15s; }
+.bulk-apply-btn:hover { opacity:.85; }
+.bulk-result { margin-top:7px; font-size:11px; line-height:1.8; }
+.bulk-ok { color:var(--ko); } .bulk-skip { color:var(--text3); } .bulk-err { color:var(--down); }
+
+/* ── 라이트 모드 ── */
+body.light-mode {
+  --bg: #28395a;
+  --bg2: #304468;
+  --surface: #3d5278;
+  --surface2: #445d88;
+  --surface3: #4c6892;
+  --border: rgba(160,200,255,.25);
+  --border2: rgba(180,220,255,.40);
+  --text: #f0f5ff;
+  --text2: #c0d0ee;
+  --text3: #8aaccc;
+  --accent: #eecc98;
+  --accent2: #b0d8ff;
+  --up: #ffaaaa;
+  --down: #90d0ff;
+  --ki: #ffd060;
+  --to: #90d0ff;
+  --ko: #70f0b8;
+  --ye: #e0b0ff;
+  --loan: #ffaaaa;
+  --extra: #70f0b8;
+}
+body.light-mode .topbar {
+  background: rgba(30,45,80,.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+body.light-mode .brand h1 { color: #f0f5ff; }
+body.light-mode .mob-nav { background: rgba(32,48,85,.88); }
+body.light-mode .kpi,
+body.light-mode .cbox,
+body.light-mode .tbox,
+body.light-mode .bpill,
+body.light-mode .cal-card,
+body.light-mode .hist-entry {
+  background: rgba(70,100,150,.32);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+/* ── PC 테마 버튼 ── */
+.pc-theme-btn {
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text2); font-size: 12px; font-weight: 600;
+  padding: 5px 12px; border-radius: 16px; cursor: pointer;
+  font-family: inherit; transition: all .2s; white-space: nowrap;
+}
+.pc-theme-btn:hover { background: var(--surface3); color: var(--text); }
+
+.sub-save-btn { width:100%; padding:10px; background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:inherit; font-size:13px; font-weight:600; border-radius:10px; cursor:pointer; margin-top:6px; transition:all .15s; }
+.sub-save-btn:hover { background:var(--surface3); }
+.add-row-btn { width:100%; padding:8px; background:rgba(52,211,153,.08); border:1px dashed rgba(52,211,153,.3); color:#34d399; font-size:13px; font-weight:600; border-radius:10px; cursor:pointer; margin-top:6px; font-family:inherit; }
+.add-row-btn:hover { background:rgba(52,211,153,.15); }
+.extra-row { display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; margin-bottom:5px; }
+.extra-row input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; color:var(--text); font-size:12px; padding:5px 8px; outline:none; font-family:'DM Mono',monospace; }
+.extra-row .ei-amt { width:110px; text-align:right; }
+.extra-row .ei-src { flex:1; }
+.extra-row .ei-del { background:rgba(251,113,133,.1); border:1px solid rgba(251,113,133,.2); color:#fb7185; width:26px; height:26px; border-radius:6px; cursor:pointer; font-size:14px; flex-shrink:0; }
+
+.all-days-btn { background:var(--surface2) !important; border:1px solid var(--border) !important; color:var(--text2) !important; margin-left:2px; }
+.all-days-btn.on { background:var(--accent2) !important; color:#0a0e1a !important; border-color:var(--accent2) !important; }
 </style>
 </head>
 <body>
@@ -481,6 +605,7 @@ tbody tr:last-child td { border-bottom:none; }
     <h1>주식일지 <span style="font-size:10px;background:rgba(126,179,245,.2);color:var(--accent2);padding:2px 8px;border-radius:10px;font-weight:600;vertical-align:middle;margin-left:4px">WEB</span></h1>
   </div>
   <div class="topbar-right">
+    <button class="pc-theme-btn" id="pcThemeBtn" onclick="toggleTheme()">🌙 다크</button>
     <div class="sync-pill" onclick="openSettings()">
       <div class="dot" id="dot"></div>
       <span id="stxt">로딩 중...</span>
@@ -500,6 +625,19 @@ tbody tr:last-child td { border-bottom:none; }
       <button class="mbtn sec" onclick="closeSettings()">닫기</button>
     </div>
     <div class="merr" id="merr"></div>
+    <div style="height:1px;background:var(--border);margin:18px 0"></div>
+    <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">화면 모드</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button id="btnDark"  onclick="setTheme('dark')"  style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s">🌙 다크 모드</button>
+      <button id="btnLight" onclick="setTheme('light')" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s">☀️ 라이트 모드</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">밝기 조정</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:14px">🌑</span>
+      <input type="range" id="brightnessSlider" min="70" max="130" value="100" style="flex:1;accent-color:var(--accent2)" oninput="applyBrightness(this.value)">
+      <span style="font-size:14px">☀️</span>
+      <span id="brightnessVal" style="font-size:11px;color:var(--text2);min-width:35px;text-align:right">100%</span>
+    </div>
   </div>
 </div>
 
@@ -531,6 +669,30 @@ tbody tr:last-child td { border-bottom:none; }
 
     <!-- 입력 -->
     <div class="sec-hdr">계좌별 평가금액 (원)</div>
+
+    <!-- 일괄 붙여넣기 -->
+    <div class="bulk-wrap">
+      <div class="bulk-tabs">
+        <button class="bulk-tab ki on" onclick="switchBulkTab('ki',this)">🟠 키움</button>
+        <button class="bulk-tab to" onclick="switchBulkTab('to',this)">🔵 토스</button>
+        <button class="bulk-tab ko" onclick="switchBulkTab('ko',this)">🟢 한국투자</button>
+      </div>
+      <div class="bulk-panel on" id="bp-ki">
+        <div class="bulk-broker-label ki">키움증권 — 계좌명 : 금액</div>
+        <textarea class="bulk-textarea" id="bulk-ki" rows="6" placeholder="거래 1 : 12,345,678&#10;거래 2 : 8,900,000&#10;20% 1 : 45,000,000&#10;공짜 1 : 3,200,000"></textarea>
+      </div>
+      <div class="bulk-panel" id="bp-to">
+        <div class="bulk-broker-label to">토스증권 — 계좌명 : 금액</div>
+        <textarea class="bulk-textarea" id="bulk-to" rows="3" placeholder="토스 : 15,000,000"></textarea>
+      </div>
+      <div class="bulk-panel" id="bp-ko">
+        <div class="bulk-broker-label ko">한국투자증권 — 계좌명 : 금액</div>
+        <textarea class="bulk-textarea" id="bulk-ko" rows="4" placeholder="거래 : 20,000,000&#10;20% : 10,000,000&#10;공짜 : 5,000,000"></textarea>
+      </div>
+      <button class="bulk-apply-btn" onclick="applyBulk()">⚡ 전체 자동 반영</button>
+      <div class="bulk-result" id="bulkResult"></div>
+    </div>
+
     <div id="sgrid"></div>
 
     <!-- 예수금 -->
@@ -542,6 +704,52 @@ tbody tr:last-child td { border-bottom:none; }
 
     <button class="save-btn" onclick="saveEntry()">💾 저장하기</button>
     <div class="save-msg" id="smsg"></div>
+
+    <!-- 대출금 -->
+    <div class="broker-hdr" style="margin-top:14px">
+      <span class="broker-badge" style="background:rgba(251,113,133,.12);color:#fb7185;border:1px solid rgba(251,113,133,.3)">대출금</span>
+      <div class="broker-line"></div>
+    </div>
+    <div class="acc-row"><span class="acc-name" style="color:#fb7185">카카오</span><input class="acc-input" type="text" inputmode="numeric" id="loan0" placeholder="0" oninput="onNum(this)" style="border-color:rgba(251,113,133,.3)"></div>
+    <div class="acc-row"><span class="acc-name" style="color:#fb7185">신한생명</span><input class="acc-input" type="text" inputmode="numeric" id="loan1" placeholder="0" oninput="onNum(this)" style="border-color:rgba(251,113,133,.3)"></div>
+    <div class="acc-row" style="margin-bottom:6px"><span class="acc-name" style="color:#fb7185">하나전세</span><input class="acc-input" type="text" inputmode="numeric" id="loan2" placeholder="0" oninput="onNum(this)" style="border-color:rgba(251,113,133,.3)"></div>
+    <button class="sub-save-btn" onclick="saveLoan()">💾 대출금 저장</button>
+    <div class="save-msg" id="loanMsg"></div>
+
+    <!-- 추가 예수금 투입 -->
+    <div class="broker-hdr" style="margin-top:14px">
+      <span class="broker-badge" style="background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3)">추가 예수금 투입</span>
+      <div class="broker-line"></div>
+    </div>
+    <div id="extraItems"></div>
+    <button class="add-row-btn" onclick="addExtraRow()">＋ 항목 추가</button>
+    <button class="sub-save-btn" onclick="saveExtra()">💾 추가 예수금 저장</button>
+    <div class="save-msg" id="extraMsg"></div>
+
+        <!-- 일간 수익 실현 금액 -->
+    <div class="broker-hdr" style="margin-top:14px">
+      <span class="broker-badge" style="background:rgba(96,165,250,.12);color:#60a5fa;border:1px solid rgba(96,165,250,.3)">일간 수익 실현 금액</span>
+      <div class="broker-line"></div>
+    </div>
+    <!-- 미니 수익 달력 -->
+    <div class="profit-cal-wrap">
+      <div class="profit-cal-nav">
+        <button onclick="pCalMove(-1)">&#8249;</button>
+        <div class="profit-cal-month" id="pCalMonth"></div>
+        <button onclick="pCalMove(1)">&#8250;</button>
+      </div>
+      <div class="profit-cal-grid" id="pCalGrid"></div>
+      <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:11px;color:var(--text3)">선택</span>
+        <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--accent2)" id="profitDateLbl">날짜를 선택하세요</span>
+      </div>
+    </div>
+    <div class="acc-row" style="margin-bottom:5px">
+      <span class="acc-name" style="color:var(--accent2)">수익 금액</span>
+      <input class="acc-input" type="text" inputmode="numeric" placeholder="0" id="profitInput" oninput="onNum(this)" style="border-color:rgba(96,165,250,.3)">
+    </div>
+    <button class="profit-save-btn" onclick="saveDailyProfit()">💰 일간 수익 저장</button>
+    <div class="save-msg" id="profitMsg"></div>
 
   </div></div>
 
@@ -575,6 +783,7 @@ tbody tr:last-child td { border-bottom:none; }
         </div>
 
         <div class="month-row-right">
+          <button class="hide-amt-btn" id="hideAmtBtn" onclick="toggleHideAmounts()">🙈 금액 가리기</button>
           <button class="sync-btn" onclick="pullFromSheets()">↻ 동기화</button>
           <button class="pdf-btn" onclick="exportPDF()">
             <span>⬇</span> PDF 저장
@@ -593,6 +802,7 @@ tbody tr:last-child td { border-bottom:none; }
             <div class="chart-type-btns">
               <button class="ct-btn on" onclick="setChartType('total','line',this)">선 도표</button>
               <button class="ct-btn" onclick="setChartType('total','bar',this)">막대</button>
+              <button class="ct-btn all-days-btn" id="allDaysBtn1" onclick="toggleAllDays()">전체 일자</button>
             </div>
           </div>
           <canvas id="cvTotal" height="130"></canvas>
@@ -604,6 +814,7 @@ tbody tr:last-child td { border-bottom:none; }
             <div class="chart-type-btns">
               <button class="ct-btn on" onclick="setChartType('delta','bar',this)">막대</button>
               <button class="ct-btn" onclick="setChartType('delta','line',this)">선 도표</button>
+              <button class="ct-btn all-days-btn" id="allDaysBtn2" onclick="toggleAllDays()">전체 일자</button>
             </div>
           </div>
           <canvas id="cvDelta" height="130"></canvas>
@@ -709,13 +920,13 @@ window.addEventListener('resize', function(){
     initResponsive();
   }
 });
-var N=12;
-var DNAMES=['거래 1 (6426-8231)','거래 2 (6533-7133)','20% 1 (6475-7054)','20% 2 (6616-1707)','문자 (6475-7067)','공짜 1 (6438-2001)','공짜 2 (6533-7134)','공짜 3 (6608-4694)','토스','거래','20%','공짜'];
-var COLORS=['#f59e0b','#fbbf24','#fcd34d','#fde68a','#fed7aa','#fdba74','#fb923c','#f97316','#60a5fa','#34d399','#6ee7b7','#a7f3d0'];
+var N=14;
+var DNAMES=['거래 1','거래 2','20% 1','20% 2','문자','공짜 1','공짜 2','공짜 3','공짜 4','공짜 5','토스','거래','20%','공짜'];
+var COLORS=['#f59e0b','#fbbf24','#fcd34d','#fde68a','#fed7aa','#fdba74','#fb923c','#f97316','#fb8c1a','#fca040','#60a5fa','#34d399','#6ee7b7','#a7f3d0'];
 var BROKERS=[
-  {name:'키움증권',cls:'ki',nb:'nb-ki',hcls:'hbki',indices:[0,1,2,3,4,5,6,7]},
-  {name:'토스증권',cls:'to',nb:'nb-to',hcls:'hbto',indices:[8]},
-  {name:'한국투자증권',cls:'ko',nb:'nb-ko',hcls:'hbko',indices:[9,10,11]}
+  {name:'키움증권',cls:'ki',nb:'nb-ki',hcls:'hbki',indices:[0,1,2,3,4,5,6,7,8,9]},
+  {name:'토스증권',cls:'to',nb:'nb-to',hcls:'hbto',indices:[10]},
+  {name:'한국투자증권',cls:'ko',nb:'nb-ko',hcls:'hbko',indices:[11,12,13]}
 ];
 
 /* ═══════════════════════════════════
@@ -859,6 +1070,11 @@ function pullFromSheets(){
         if(nd) clean[nd]=result.data[k];
       }
       MEM.stockData=clean;
+      if(result.meta){
+        try{ if(result.meta.loanData){ loanData=JSON.parse(result.meta.loanData); buildLoanUI(); } }catch(e){}
+        try{ if(result.meta.extraData){ extraData=JSON.parse(result.meta.extraData); buildExtraUI(); } }catch(e){}
+        try{ if(result.meta.dailyProfits) dailyProfits=JSON.parse(result.meta.dailyProfits); }catch(e){}
+      }
       var cnt=Object.keys(clean).length;
       setDot('ok', cnt+'개 기록');
       console.log('[Sheets] 로드 완료:', cnt+'개');
@@ -1393,12 +1609,285 @@ window.addEventListener('resize',function(){
 /* ═══════════════════════════════════
    초기화
 ═══════════════════════════════════ */
+
+/* ═══ 금액 가리기 ═══ */
+var amountsHidden=false, hideAmtTimer=null;
+
+var _origFmtW=fmtW, _origFmtD=fmtD;
+function fmtW(n){
+  if(amountsHidden){ var f=Math.floor(Math.random()*900000000)+100000000; return '₩'+f.toLocaleString('ko-KR'); }
+  return _origFmtW(n);
+}
+function fmtD(n){
+  if(amountsHidden){ var f=(Math.random()>.5?1:-1)*Math.floor(Math.random()*9000000+1000000); return (f>0?'+':'-')+'₩'+Math.abs(f).toLocaleString('ko-KR'); }
+  return _origFmtD(n);
+}
+function toggleHideAmounts(){
+  if(hideAmtTimer){ clearTimeout(hideAmtTimer); hideAmtTimer=null; }
+  amountsHidden=true;
+  var btn=document.getElementById('hideAmtBtn');
+  if(btn){ btn.classList.add('active'); btn.textContent='👁 5초 후 복원'; }
+  drawKpi(getMonthEntries()); drawBrokerPills(getMonthEntries());
+  hideAmtTimer=setTimeout(function(){
+    amountsHidden=false;
+    var btn2=document.getElementById('hideAmtBtn');
+    if(btn2){ btn2.classList.remove('active'); btn2.textContent='🙈 금액 가리기'; }
+    drawKpi(getMonthEntries()); drawBrokerPills(getMonthEntries());
+    hideAmtTimer=null;
+  },5000);
+}
+
+/* ═══ 미니 수익 달력 ═══ */
+var pCalYear=0, pCalMonth2=0, profitSelectedDate='';
+function pCalMove(d){
+  pCalMonth2+=d;
+  if(pCalMonth2>11){pCalMonth2=0;pCalYear++;} if(pCalMonth2<0){pCalMonth2=11;pCalYear--;}
+  buildPCal();
+}
+function buildPCal(){
+  var y=pCalYear,m=pCalMonth2,mm=padZ(m+1);
+  var el=document.getElementById('pCalMonth'); if(!el) return;
+  el.textContent=y+'년 '+(m+1)+'월';
+  var grid=document.getElementById('pCalGrid'); grid.innerHTML='';
+  var dows=['일','월','화','수','목','금','토'];
+  for(var di=0;di<7;di++){ var dw=document.createElement('div'); dw.className='pcal-dow'; dw.textContent=dows[di]; grid.appendChild(dw); }
+  var first=new Date(y,m,1).getDay(), last=new Date(y,m+1,0).getDate(), prevLast=new Date(y,m,0).getDate(), today=todayStr();
+  for(var pi=0;pi<first;pi++){ var pd=document.createElement('div'); pd.className='pcal-day other'; pd.textContent=prevLast-first+pi+1; grid.appendChild(pd); }
+  for(var day=1;day<=last;day++){
+    var dd=padZ(day),ds=y+'-'+mm+'-'+dd;
+    var d2=document.createElement('div');
+    var cls='pcal-day';
+    if(dailyProfits[ds]&&Number(dailyProfits[ds])!==0) cls+=' has-profit';
+    if(ds===profitSelectedDate) cls+=' pselected';
+    if(ds===today) cls+=' ptoday';
+    d2.className=cls; d2.textContent=day;
+    (function(s){ d2.onclick=function(){ selectProfitDate(s); }; })(ds);
+    grid.appendChild(d2);
+  }
+  var rem=(first+last)%7===0?0:7-(first+last)%7;
+  for(var ni=1;ni<=rem;ni++){ var nd=document.createElement('div'); nd.className='pcal-day other'; nd.textContent=ni; grid.appendChild(nd); }
+}
+function selectProfitDate(ds){
+  profitSelectedDate=ds; buildPCal();
+  var lbl=document.getElementById('profitDateLbl'); if(lbl) lbl.textContent=fmtDate(ds);
+  var pi=document.getElementById('profitInput'); if(pi) pi.value=dailyProfits[ds]?Number(dailyProfits[ds]).toLocaleString('ko-KR'): '';
+}
+
+
+/* ═══ 일괄 붙여넣기 ═══ */
+function switchBulkTab(cls, btn){
+  var tabs=document.querySelectorAll('.bulk-tab');
+  var panels=document.querySelectorAll('.bulk-panel');
+  for(var i=0;i<tabs.length;i++) tabs[i].classList.remove('on');
+  for(var j=0;j<panels.length;j++) panels[j].classList.remove('on');
+  btn.classList.add('on');
+  var p=document.getElementById('bp-'+cls);
+  if(p) p.classList.add('on');
+}
+
+function parseBulkText(text, allowedIndices, names){
+  var lines=text.split('
+'), okList=[], errList=[];
+  for(var li=0;li<lines.length;li++){
+    var line=lines[li].trim(); if(!line) continue;
+    line=line.replace(/^[\d]+[.)]\s*/,'');
+    var ci=line.lastIndexOf(':'); if(ci<0) continue;
+    var rawName=line.slice(0,ci).trim();
+    var rawAmt=line.slice(ci+1).trim().replace(/,/g,'').replace(/[^0-9]/g,'');
+    if(!rawName||!rawAmt) continue;
+    var amt=Number(rawAmt), kw=rawName.toLowerCase(), matched=[];
+    for(var k=0;k<allowedIndices.length;k++){
+      var idx=allowedIndices[k];
+      var an=(names[idx]||'').toLowerCase();
+      if(an.indexOf(kw)!==-1||kw.indexOf(an)!==-1) matched.push(idx);
+    }
+    if(!matched.length){ errList.push(rawName+' → 없음'); continue; }
+    for(var m=0;m<matched.length;m++){
+      var el=document.getElementById('v'+matched[m]);
+      if(el) el.value=amt.toLocaleString('ko-KR');
+    }
+    okList.push(rawName+' → '+amt.toLocaleString('ko-KR')+'원');
+  }
+  return {ok:okList,err:errList};
+}
+
+function applyBulk(){
+  var names=MEM.stockNames, res=document.getElementById('bulkResult');
+  res.innerHTML='';
+  var allOk=[],allErr=[];
+  var groups=[
+    {id:'bulk-ki',indices:BROKERS[0].indices,label:'키움'},
+    {id:'bulk-to',indices:BROKERS[1].indices,label:'토스'},
+    {id:'bulk-ko',indices:BROKERS[2].indices,label:'한투'}
+  ];
+  for(var g=0;g<groups.length;g++){
+    var ta=document.getElementById(groups[g].id);
+    if(!ta||!ta.value.trim()) continue;
+    var r=parseBulkText(ta.value,groups[g].indices,names);
+    for(var oi=0;oi<r.ok.length;oi++) allOk.push('['+groups[g].label+'] '+r.ok[oi]);
+    for(var ei=0;ei<r.err.length;ei++) allErr.push('['+groups[g].label+'] '+r.err[ei]);
+  }
+  if(!allOk.length&&!allErr.length){ res.innerHTML='<span class="bulk-skip">입력된 내용이 없습니다.</span>'; return; }
+  var html='';
+  if(allOk.length) html+='<div class="bulk-ok">✅ '+allOk.length+'건 반영<br>'+allOk.join('<br>')+'</div>';
+  if(allErr.length) html+='<div class="bulk-err" style="margin-top:4px">⚠️ 매칭 실패<br>'+allErr.join('<br>')+'</div>';
+  res.innerHTML=html;
+}
+
+/* ═══ 일간 수익 저장 ═══ */
+function saveDailyProfit(){
+  if(!profitSelectedDate){ alert('미니 달력에서 날짜를 선택하세요.'); return; }
+  if(!MEM.scriptUrl){ alert('Google Sheets URL을 먼저 연결하세요.'); return; }
+  var raw=getRaw('profitInput');
+  if(raw==='' || raw===0){ alert('수익 금액을 입력하세요.'); return; }
+  dailyProfits[profitSelectedDate]=Number(raw);
+  var msg=document.getElementById('profitMsg');
+  msg.textContent='⏳ 저장 중...';
+  showLoader('일간 수익 Sheets 저장 중...');
+  doPost({action:'saveMeta',key:'dailyProfits',value:JSON.stringify(dailyProfits)},function(ok){
+    hideLoader();
+    msg.textContent=ok?'✓ '+fmtDate(profitSelectedDate)+' 수익 저장 완료!':'❌ 저장 실패';
+    setTimeout(function(){ msg.textContent=''; },3000);
+    buildCal(); buildPCal();
+    drawKpi(getMonthEntries());
+    if(ok) setTimeout(function(){ pullFromSheets(); },2000);
+  });
+}
+
+
+/* ═══ 테마 / 밝기 ═══ */
+var isLightMode = false;
+function applyTheme(mode){
+  isLightMode = (mode==='light');
+  if(isLightMode) document.body.classList.add('light-mode');
+  else document.body.classList.remove('light-mode');
+  var pb=document.getElementById('pcThemeBtn');
+  if(pb) pb.textContent=isLightMode?'☀️ 라이트':'🌙 다크';
+  var bd=document.getElementById('btnDark'), bl=document.getElementById('btnLight');
+  if(bd){ bd.style.background=isLightMode?'var(--surface2)':'var(--accent)'; bd.style.color=isLightMode?'var(--text2)':'#111'; }
+  if(bl){ bl.style.background=isLightMode?'var(--accent)':'var(--surface2)'; bl.style.color=isLightMode?'#111':'var(--text2)'; }
+  try{ localStorage.setItem('themeMode',mode); }catch(e){}
+}
+function setTheme(mode){ applyTheme(mode); }
+function toggleTheme(){ applyTheme(isLightMode?'dark':'light'); }
+function applyBrightness(val){
+  document.documentElement.style.filter='brightness('+val+'%)';
+  var lbl=document.getElementById('brightnessVal'); if(lbl) lbl.textContent=val+'%';
+  try{ localStorage.setItem('brightness',val); }catch(e){}
+}
+function loadTheme(){
+  try{
+    var t=localStorage.getItem('themeMode'); if(t==='light') applyTheme('light');
+    var b=localStorage.getItem('brightness');
+    if(b){ document.documentElement.style.filter='brightness('+b+'%)';
+      var sl=document.getElementById('brightnessSlider'); if(sl) sl.value=b;
+      var lbl=document.getElementById('brightnessVal'); if(lbl) lbl.textContent=b+'%'; }
+  }catch(e){}
+}
+
+/* ═══ 대출금 / 추가예수금 ═══ */
+var loanData = {0:0, 1:0, 2:0};
+var extraData = [];
+
+function buildLoanUI(){
+  for(var i=0;i<3;i++){
+    var el=document.getElementById('loan'+i);
+    if(el) el.value=loanData[i]?Number(loanData[i]).toLocaleString('ko-KR'):'';
+  }
+}
+function saveLoan(){
+  if(!MEM.scriptUrl){ alert('Google Sheets URL을 연결하세요.'); return; }
+  for(var i=0;i<3;i++){
+    var el=document.getElementById('loan'+i);
+    var v=el?el.value.replace(/,/g,''):'';
+    loanData[i]=v===''?0:Number(v);
+  }
+  var msg=document.getElementById('loanMsg'); msg.textContent='⏳ 저장 중...';
+  showLoader('대출금 저장 중...');
+  doPost({action:'saveMeta',key:'loanData',value:JSON.stringify(loanData)},function(ok){
+    hideLoader();
+    msg.textContent=ok?'✓ 대출금 저장 완료':'❌ 저장 실패';
+    setTimeout(function(){ msg.textContent=''; },2000);
+    if(ok) setTimeout(function(){ pullFromSheets(); },2000);
+  });
+}
+function getLoanTotal(){ var s=0; for(var i=0;i<3;i++) s+=Number(loanData[i])||0; return s; }
+
+function buildExtraUI(){
+  var c=document.getElementById('extraItems'); if(!c) return; c.innerHTML='';
+  for(var i=0;i<extraData.length;i++){
+    (function(idx){
+      var row=document.createElement('div'); row.className='extra-row';
+      var amt=extraData[idx].amount?Number(extraData[idx].amount).toLocaleString('ko-KR'):'';
+      row.innerHTML='<input class="ei-amt" type="text" inputmode="numeric" placeholder="금액" value="'+amt+'" oninput="onNum(this)" onchange="updateExtra('+idx+',\'amount\',this.value)">'+
+        '<input class="ei-src" type="text" placeholder="투입 출처" value="'+(extraData[idx].source||'')+'" oninput="updateExtra('+idx+',\'source\',this.value)">'+
+        '<button class="ei-del" onclick="removeExtra('+idx+')">✕</button>';
+      c.appendChild(row);
+    })(i);
+  }
+}
+function addExtraRow(){ extraData.push({amount:'',source:''}); buildExtraUI(); }
+function updateExtra(idx,key,val){
+  if(!extraData[idx]) return;
+  if(key==='amount'){ val=val.replace(/,/g,''); extraData[idx].amount=val===''?'':Number(val); }
+  else extraData[idx].source=val;
+}
+function removeExtra(idx){ extraData.splice(idx,1); buildExtraUI(); }
+function saveExtra(){
+  if(!MEM.scriptUrl){ alert('Google Sheets URL을 연결하세요.'); return; }
+  var msg=document.getElementById('extraMsg'); msg.textContent='⏳ 저장 중...';
+  showLoader('추가 예수금 저장 중...');
+  doPost({action:'saveMeta',key:'extraData',value:JSON.stringify(extraData)},function(ok){
+    hideLoader();
+    msg.textContent=ok?'✓ 추가 예수금 저장 완료':'❌ 저장 실패';
+    setTimeout(function(){ msg.textContent=''; },2000);
+    if(ok) setTimeout(function(){ pullFromSheets(); },2000);
+  });
+}
+function getExtraTotal(){ var s=0; for(var i=0;i<extraData.length;i++) s+=Number(extraData[i].amount)||0; return s; }
+
+/* ═══ 전체 일자 차트 ═══ */
+var showAllDays = false;
+var KR_HOLIDAYS = {
+  '2025-01-01':1,'2025-01-28':1,'2025-01-29':1,'2025-01-30':1,
+  '2025-03-01':1,'2025-05-05':1,'2025-05-06':1,'2025-06-06':1,
+  '2025-08-15':1,'2025-10-03':1,'2025-10-06':1,'2025-10-07':1,'2025-10-08':1,
+  '2025-10-09':1,'2025-12-25':1,
+  '2026-01-01':1,'2026-01-28':1,'2026-01-29':1,'2026-01-30':1,
+  '2026-03-01':1,'2026-05-05':1,'2026-06-06':1,
+  '2026-08-15':1,'2026-09-24':1,'2026-09-25':1,'2026-09-26':1,
+  '2026-10-03':1,'2026-10-09':1,'2026-12-25':1
+};
+function isKrHoliday(ds){ return !!KR_HOLIDAYS[ds]; }
+function getMonthWeekdays(year,month){
+  var days=[],last=new Date(year,month+1,0).getDate();
+  for(var d=1;d<=last;d++){
+    var ds=year+'-'+padZ(month+1)+'-'+padZ(d);
+    var dow=new Date(year,month,d).getDay();
+    if(dow!==0&&dow!==6&&!isKrHoliday(ds)) days.push(ds);
+  }
+  return days;
+}
+function getChartEntries(){
+  if(showAllDays) return getMonthEntries(); /* 전체 모드: 입력된 것만, x축은 별도 처리 */
+  return getMonthEntries();
+}
+function toggleAllDays(){
+  showAllDays=!showAllDays;
+  var b1=document.getElementById('allDaysBtn1'),b2=document.getElementById('allDaysBtn2');
+  var txt=showAllDays?'입력 일자':'전체 일자';
+  if(b1){ if(showAllDays) b1.classList.add('on'); else b1.classList.remove('on'); b1.textContent=txt; }
+  if(b2){ if(showAllDays) b2.classList.add('on'); else b2.classList.remove('on'); b2.textContent=txt; }
+  var ent=getMonthEntries();
+  requestAnimationFrame(function(){ drawTotalChart(ent); drawDeltaChart(ent); });
+}
+
 function init(){
   loadUrl();
   var td=todayStr(),tp=td.split('-');
   selectedDate=td; calYear=parseInt(tp[0],10); calMonth=parseInt(tp[1],10)-1;
   dashYear=calYear; dashMonth=calMonth; dashEntryIdx=-1;
-  buildCal(); buildGrid(); renderDash(); renderHist();
+  pCalYear=calYear; pCalMonth2=calMonth; loadTheme(); buildCal(); buildGrid(); buildPCal(); buildLoanUI(); buildExtraUI(); renderDash(); renderHist();
   initResponsive();
   if(MEM.scriptUrl){
     setDot('ing','Google Sheets 불러오는 중...');
