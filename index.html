@@ -1340,11 +1340,9 @@ function selectProfitDate(ds){
   var pi=document.getElementById('profitInput');
   if(pi) pi.value=dailyProfits[ds]?Number(dailyProfits[ds]).toLocaleString('ko-KR'):'';
 }
+
+function selectDate(ds){
   selectedDate=ds; buildCal(); buildGrid();
-  var lbl=document.getElementById('profitDateLbl');
-  if(lbl) lbl.textContent=fmtDate(ds);
-  var pi=document.getElementById('profitInput');
-  if(pi) pi.value=dailyProfits[ds]?Number(dailyProfits[ds]).toLocaleString('ko-KR'):'';
 }
 
 /* ═══════════════════════════════════
@@ -1626,15 +1624,13 @@ function drawKpi(entries){
       '<div class="kpi-sub flat">'+dashYear+'년 '+(profitPeriod==='month'?(dashMonth+1)+'월 ':'')+'누적</div>'+
     '</div>';
 
-  /* DOM 생성 후 이벤트 직접 연결 — setTimeout으로 DOM 완전 반영 후 */
-  setTimeout(function(){
-    var leb=document.getElementById('loanExclBtn');
-    if(leb) leb.onclick=function(){ window.toggleLoanExclude(); };
-    var cpb=document.getElementById('cPeriodBtn');
-    if(cpb) cpb.onclick=function(){ window.toggleCompoundPeriod(); };
-    var ppb=document.getElementById('pPeriodBtn');
-    if(ppb) ppb.onclick=function(){ window.toggleProfitPeriod(); };
-  },0);
+  /* DOM 생성 후 즉시 이벤트 연결 */
+  var leb=c.querySelector('#loanExclBtn');
+  if(leb) leb.onclick=function(){ loanExcludeMode=!loanExcludeMode; drawKpi(getMonthEntries()); };
+  var cpb=c.querySelector('#cPeriodBtn');
+  if(cpb) cpb.onclick=function(){ compoundPeriod=compoundPeriod==='month'?'year':'month'; drawKpi(getMonthEntries()); };
+  var ppb=c.querySelector('#pPeriodBtn');
+  if(ppb) ppb.onclick=function(){ profitPeriod=profitPeriod==='month'?'year':'month'; drawKpi(getMonthEntries()); };
 }
 
 function drawBrokerPills(entries){
