@@ -721,7 +721,10 @@ body.light-mode .hist-entry {
       </div>
     </div>
     <div class="acc-row" style="margin-bottom:5px">
-      <span class="acc-name" style="color:var(--accent2)">수익 금액</span>
+      <span class="acc-name" style="color:var(--accent2);display:flex;align-items:center;gap:6px">
+        수익 금액
+        <button onclick="clearDailyProfit()" title="이 날짜의 수익을 0으로 초기화" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:rgba(248,113,113,.18);border:1px solid rgba(248,113,113,.4);color:#f87171;font-size:11px;font-weight:900;cursor:pointer;line-height:1;padding:0;flex-shrink:0;transition:all .15s" onmouseover="this.style.background='rgba(248,113,113,.35)'" onmouseout="this.style.background='rgba(248,113,113,.18)'">✕</button>
+      </span>
       <input class="acc-input" type="text" inputmode="numeric" placeholder="0" id="profitInput" oninput="onNum(this)" style="border-color:rgba(96,165,250,.3)">
     </div>
     <button class="profit-save-btn" onclick="saveDailyProfit()">💰 일간 수익 저장</button>
@@ -1778,6 +1781,24 @@ function saveDailyProfit(){
   doPost({action:'saveMeta',key:'dailyProfits',value:JSON.stringify(dailyProfits)},function(ok){
     hideLoader();
     msg.textContent=ok?'✓ '+fmtDate(profitSelectedDate)+' 수익 저장 완료!':'❌ 저장 실패';
+    setTimeout(function(){ msg.textContent=''; },3000);
+    buildCal(); buildPCal();
+    drawKpi(getMonthEntries());
+    if(ok) setTimeout(function(){ pullFromSheets(); },2000);
+  });
+}
+
+function clearDailyProfit(){
+  if(!profitSelectedDate){ alert('미니 달력에서 날짜를 선택하세요.'); return; }
+  if(!MEM.scriptUrl){ alert('Google Sheets URL을 먼저 연결하세요.'); return; }
+  dailyProfits[profitSelectedDate]=0;
+  var pi=document.getElementById('profitInput'); if(pi) pi.value='';
+  var msg=document.getElementById('profitMsg');
+  msg.textContent='⏳ 초기화 중...';
+  showLoader('일간 수익 초기화 중...');
+  doPost({action:'saveMeta',key:'dailyProfits',value:JSON.stringify(dailyProfits)},function(ok){
+    hideLoader();
+    msg.textContent=ok?'✓ '+fmtDate(profitSelectedDate)+' 수익 0으로 초기화 완료!':'❌ 저장 실패';
     setTimeout(function(){ msg.textContent=''; },3000);
     buildCal(); buildPCal();
     drawKpi(getMonthEntries());
