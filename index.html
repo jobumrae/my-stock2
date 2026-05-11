@@ -369,8 +369,8 @@ tbody tr:last-child td { border-bottom:none; }
   /* 탑바 — safe-area 2배 여백 */
   .topbar {
     height: auto;
-    padding: calc(env(safe-area-inset-top, 0px) * 2 + 20px) 16px 12px;
-    min-height: 52px;
+    padding: calc(env(safe-area-inset-top, 0px) * 0.8 + 8px) 16px 10px;
+    min-height: 48px;
   }
   .brand h1 { font-size: 14px; }
   .brand-icon { width: 28px; height: 28px; font-size: 14px; }
@@ -393,13 +393,13 @@ tbody tr:last-child td { border-bottom:none; }
   .mob-nav { display: block; }
   .rtabs { display: none; }
 
-  /* KPI — 총자산 폰트 2배 */
+  /* KPI — 총자산 폰트 2배, 월간증감은 작게 유지해서 한줄 */
   .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
   .kpi.wide { grid-column: span 2; }
-  .kpi-val { font-size: 32px; }          /* 19px → 38px (2배) */
-  .kpi.wide .kpi-val { font-size: 38px; }
+  .kpi-val { font-size: 15px; }           /* 일반 카드 작게 → 한줄 */
+  .kpi.wide .kpi-val { font-size: 38px; } /* 총자산만 크게 */
   .kpi-lbl { font-size: 10px; }
-  .kpi-sub { font-size: 14px; margin-top: 6px; } /* 전일대비 비례 */
+  .kpi-sub { font-size: 14px; margin-top: 6px; }
   .kpi { padding: 14px 14px; }
 
   /* 브로커 2열 */
@@ -456,18 +456,57 @@ tbody tr:last-child td { border-bottom:none; }
   .day-lbl { font-size: 11px; min-width: 64px; }
 }
 
-/* ── 가로 모드 (landscape) — 달력 좌측 여백 2배 ── */
+/* ── 가로 모드 (landscape) — 좌측 여백 50% 줄임 ── */
 @media (orientation: landscape) and (max-width: 900px) {
-  .left-inner { padding-left: max(28px, calc(env(safe-area-inset-left, 0px) * 2 + 20px)); }
-  .topbar { padding-left: max(28px, calc(env(safe-area-inset-left, 0px) * 2 + 16px)); }
+  .left-inner { padding-left: max(14px, calc(env(safe-area-inset-left, 0px) + 10px)); }
+  .topbar { padding-left: max(14px, calc(env(safe-area-inset-left, 0px) + 8px)); }
   canvas#cvTotal { max-height: 35vw; }
   canvas#cvDelta { max-height: 35vw; }
 }
 
-/* ── 소형 모바일 (≤390px) ── */
+/* ── 화이트 모드 ── */
+body.light-mode {
+  --bg: #f5f4f0;
+  --bg2: #eceae4;
+  --surface: #ffffff;
+  --surface2: #f0ede6;
+  --surface3: #e4e0d8;
+  --border: rgba(0,0,0,.10);
+  --border2: rgba(0,0,0,.18);
+  --text: #1a1810;
+  --text2: #5a5648;
+  --text3: #9a9688;
+  --accent: #7c5c3a;
+  --accent2: #3060a0;
+  --up: #c0392b;
+  --down: #2060b0;
+  --ki: #c47000;
+  --to: #2060b0;
+  --ko: #1a6b40;
+  --ye: #6a3d8f;
+  --loan: #c0392b;
+  --extra: #1a6b40;
+  --glow-ki: rgba(196,112,0,.10);
+  --glow-to: rgba(32,96,176,.10);
+  --glow-ko: rgba(26,107,64,.10);
+  --glow-ye: rgba(106,61,143,.10);
+}
+body.light-mode .topbar { background: rgba(240,237,230,.96); }
+body.light-mode .brand h1 { color: #1a1810; }
+body.light-mode .mob-nav { background: rgba(245,244,240,.97); }
+
+/* ── PC 테마 버튼 ── */
+.pc-theme-btn {
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text2); font-size: 12px; font-weight: 600;
+  padding: 5px 12px; border-radius: 16px; cursor: pointer;
+  font-family: 'Pretendard','Noto Sans KR',sans-serif; transition: all .2s;
+  white-space: nowrap;
+}
+.pc-theme-btn:hover { background: var(--surface3); color: var(--text); }
 @media (max-width: 390px) {
-  .kpi-val { font-size: 28px; }
-  .kpi.wide .kpi-val { font-size: 32px; }
+  .kpi-val { font-size: 13px; }
+  .kpi.wide .kpi-val { font-size: 30px; }
   .broker-pills { grid-template-columns: 1fr 1fr; }
   .bpill-val { font-size: 12px; }
   .acc-input { width: 100px; }
@@ -502,6 +541,7 @@ tbody tr:last-child td { border-bottom:none; }
     <h1>주식일지 <span style="font-size:10px;background:rgba(126,179,245,.2);color:var(--accent2);padding:2px 8px;border-radius:10px;font-weight:600;vertical-align:middle;margin-left:4px">WEB</span></h1>
   </div>
   <div class="topbar-right">
+    <button class="pc-theme-btn" id="pcThemeBtn" onclick="toggleTheme()">🌙 다크</button>
     <div class="sync-pill" onclick="openSettings()">
       <div class="dot" id="dot"></div>
       <span id="stxt">로딩 중...</span>
@@ -854,16 +894,22 @@ function hideLoader(){ document.getElementById('loader').classList.remove('on');
 ═══════════════════════════════════ */
 /* ── 테마 / 밝기 ── */
 var isLightMode = false;
+var loanExcludeMode = false;   /* 대출제외 토글 상태 */
+var LOAN_FIXED = 200000000;    /* 고정 대출금 2억 */
 function setTheme(mode){
   isLightMode = (mode==='light');
   if(isLightMode) document.body.classList.add('light-mode');
   else            document.body.classList.remove('light-mode');
-  /* 버튼 active 상태 */
+  /* 설정 모달 버튼 */
   var bd=document.getElementById('btnDark'), bl=document.getElementById('btnLight');
   if(bd){ bd.style.background=isLightMode?'var(--surface2)':'var(--accent)'; bd.style.color=isLightMode?'var(--text2)':'#111'; }
   if(bl){ bl.style.background=isLightMode?'var(--accent)':'var(--surface2)'; bl.style.color=isLightMode?'#111':'var(--text2)'; }
+  /* PC 탑바 버튼 */
+  var pb=document.getElementById('pcThemeBtn');
+  if(pb) pb.textContent = isLightMode ? '🌙 다크' : '☀️ 라이트';
   try{ localStorage.setItem('themeMode', mode); }catch(e){}
 }
+function toggleTheme(){ setTheme(isLightMode ? 'dark' : 'light'); }
 function applyBrightness(val){
   document.documentElement.style.filter = 'brightness('+val+'%)';
   var lbl=document.getElementById('brightnessVal'); if(lbl) lbl.textContent=val+'%';
@@ -1238,6 +1284,12 @@ function renderDash(){
   requestAnimationFrame(function(){ drawTotalChart(chartEnt); drawDeltaChart(chartEnt); });
 }
 
+function toggleLoanExclude(){
+  loanExcludeMode = !loanExcludeMode;
+  drawKpi(getMonthEntries());
+}
+window.toggleLoanExclude = toggleLoanExclude;
+
 function drawKpi(entries){
   var c=document.getElementById('kpiGrid');
   if(!entries.length){
@@ -1250,10 +1302,21 @@ function drawKpi(entries){
   var prev=idx>0?getTotal(entries[idx-1][1]):total;
   var first=getTotal(entries[0][1]), dDay=total-prev, dMonth=total-first;
   var pct=first?((dMonth/first)*100).toFixed(2):'0.00';
+
+  /* 표시 금액 — 대출제외 모드면 2억 차감 */
+  var dispTotal = loanExcludeMode ? total - LOAN_FIXED : total;
+  var btnLabel  = loanExcludeMode ? '대출포함' : '대출제외';
+  var btnStyle  = loanExcludeMode
+    ? 'background:rgba(251,113,133,.25);border:1px solid rgba(251,113,133,.5);color:#fb7185;'
+    : 'background:var(--surface3);border:1px solid var(--border2);color:var(--text2);';
+
   c.innerHTML=
-    '<div class="kpi wide"><div class="kpi-glow" style="background:rgba(200,160,106,.4)"></div>'+
-      '<div class="kpi-lbl">현재 총 자산</div>'+
-      '<div class="kpi-val">'+fmtW(total)+'</div>'+
+    '<div class="kpi wide" style="position:relative">'+
+      '<div class="kpi-glow" style="background:rgba(200,160,106,.4)"></div>'+
+      /* 버튼: 카드 우측 중앙 */
+      '<button onclick="window.toggleLoanExclude()" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);'+btnStyle+'font-size:11px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:\'Pretendard\',\'Noto Sans KR\',sans-serif;white-space:nowrap;transition:all .15s">'+btnLabel+'</button>'+
+      '<div class="kpi-lbl">현재 총 자산'+(loanExcludeMode?' <span style="font-size:10px;color:#fb7185">(대출 -₩200,000,000)</span>':'')+'</div>'+
+      '<div class="kpi-val" style="padding-right:90px">'+fmtW(dispTotal)+'</div>'+
       '<div class="kpi-sub '+clsN(dDay)+'">전일 대비 '+fmtD(dDay)+'</div>'+
     '</div>'+
     '<div class="kpi"><div class="kpi-glow" style="background:rgba(248,113,113,.3)"></div>'+
