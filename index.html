@@ -472,35 +472,59 @@ tbody tr:last-child td { border-bottom:none; }
 
 /* ── 화이트 모드 ── */
 body.light-mode {
-  /* 다크 모드 기준 명도 +50% — 블루 톤 유지 */
-  --bg: #344870;         /* #0a0e1a → +50% */
-  --bg2: #3d5480;        /* #0f1525 → +50% */
-  --surface: #4a5f90;    /* #1a2035 → +50% */
-  --surface2: #526aa0;   /* #1e2a45 → +50% */
-  --surface3: #5a74aa;   /* #243252 → +50% */
-  --border: rgba(160,200,255,.28);
-  --border2: rgba(180,215,255,.42);
-  --text: #f8faff;
-  --text2: #ccd8f4;
-  --text3: #9ab0d8;
-  --accent: #f0cc98;
-  --accent2: #b8ddff;
+  /* 다크+50%에서 10% 감소 — 블루 톤 유지 */
+  --bg: #28395a;
+  --bg2: #304468;
+  --surface: #3d5278;
+  --surface2: #445d88;
+  --surface3: #4c6892;
+  --border: rgba(160,200,255,.25);
+  --border2: rgba(180,220,255,.40);
+  --text: #f0f5ff;
+  --text2: #c0d0ee;
+  --text3: #8aaccc;
+  --accent: #eecc98;
+  --accent2: #b0d8ff;
   --up: #ffaaaa;
-  --down: #99d6ff;
+  --down: #90d0ff;
   --ki: #ffd060;
-  --to: #99d6ff;
-  --ko: #80f0b8;
-  --ye: #e8b8ff;
+  --to: #90d0ff;
+  --ko: #70f0b8;
+  --ye: #e0b0ff;
   --loan: #ffaaaa;
-  --extra: #80f0b8;
-  --glow-ki: rgba(245,158,11,.25);
-  --glow-to: rgba(96,165,250,.25);
-  --glow-ko: rgba(52,211,153,.25);
-  --glow-ye: rgba(192,132,252,.25);
+  --extra: #70f0b8;
+  --glow-ki: rgba(245,158,11,.28);
+  --glow-to: rgba(96,165,250,.28);
+  --glow-ko: rgba(52,211,153,.28);
+  --glow-ye: rgba(192,132,252,.28);
 }
-body.light-mode .topbar { background: rgba(38,55,98,.96); }
-body.light-mode .brand h1 { color: #f8faff; }
-body.light-mode .mob-nav { background: rgba(42,60,105,.97); }
+/* 라이트 모드 글래스모피즘 */
+body.light-mode .topbar {
+  background: rgba(30,45,80,.75);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid rgba(160,200,255,.25);
+}
+body.light-mode .brand h1 { color: #f0f5ff; }
+body.light-mode .mob-nav {
+  background: rgba(32,48,85,.80);
+  backdrop-filter: blur(18px) saturate(1.3);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+}
+body.light-mode .kpi,
+body.light-mode .cbox,
+body.light-mode .tbox,
+body.light-mode .bpill,
+body.light-mode .cal-card,
+body.light-mode .acc-row,
+body.light-mode .bulk-wrap,
+body.light-mode .modal,
+body.light-mode .hist-entry {
+  background: rgba(70,100,150,.32);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border-color: rgba(160,200,255,.28);
+}
 
 /* ── PC 테마 버튼 ── */
 .pc-theme-btn {
@@ -802,12 +826,12 @@ function mobGo(tab){
     if(tab==='history'){
       renderHist();
     } else {
-      renderDash();
-      /* 패널이 display:block 된 후 offsetWidth가 확정되므로 지연 후 재draw */
+      renderDash(true); /* 차트는 아직 패널이 hidden이므로 skip */
       setTimeout(function(){
+        /* 패널 완전 렌더 후 정확한 너비로 차트 그리기 */
         var ent=getChartEntries();
         requestAnimationFrame(function(){ drawTotalChart(ent); drawDeltaChart(ent); });
-      }, 150);
+      }, 200);
     }
   }
   var mtabs = document.querySelectorAll('.mob-tab');
@@ -1231,9 +1255,11 @@ function goTab(tab){
   for(var k=0;k<order.length;k++) if(order[k]===tab){tabs[k].classList.add('on');break;}
   if(tab==='history') renderHist();
   else {
-    renderDash();
-    var ent=getChartEntries();
-    setTimeout(function(){ requestAnimationFrame(function(){ drawTotalChart(ent); drawDeltaChart(ent); }); }, 100);
+    renderDash(true);
+    setTimeout(function(){
+      var ent=getChartEntries();
+      requestAnimationFrame(function(){ drawTotalChart(ent); drawDeltaChart(ent); });
+    }, 200);
   }
 }
 
@@ -1290,7 +1316,7 @@ function updateDayView(entries){
   document.getElementById('dayNext').disabled=(idx===entries.length-1);
   drawKpi(entries); drawBrokerPills(entries); drawAccTable(entries);
 }
-function renderDash(){
+function renderDash(skipCharts){
   var ml=dashYear+'년 '+(dashMonth+1)+'월';
   document.getElementById('mlbl').textContent=ml;
   document.getElementById('cperiod1').textContent=ml+' (주말 제외)';
@@ -1299,8 +1325,10 @@ function renderDash(){
   if(dashEntryIdx===-1&&entries.length>0) dashEntryIdx=entries.length-1;
   if(entries.length>0&&dashEntryIdx>=entries.length) dashEntryIdx=entries.length-1;
   updateDayView(entries);
-  var chartEnt=getChartEntries();
-  requestAnimationFrame(function(){ drawTotalChart(chartEnt); drawDeltaChart(chartEnt); });
+  if(!skipCharts){
+    var chartEnt=getChartEntries();
+    requestAnimationFrame(function(){ drawTotalChart(chartEnt); drawDeltaChart(chartEnt); });
+  }
 }
 
 function toggleLoanExclude(){
@@ -1388,6 +1416,7 @@ var KR_HOLIDAYS = {
 };
 function isKrHoliday(ds){ return !!KR_HOLIDAYS[ds]; }
 
+/* 전체 일자: 해당 월 평일 (토·일·한국 공휴일 제외) */
 function getMonthWeekdays(year, month){
   var days=[]; var last=new Date(year,month+1,0).getDate();
   for(var d=1;d<=last;d++){
@@ -1438,12 +1467,14 @@ function buildAllDaysData(entries){
   for(var i=0;i<entries.length;i++) dataMap[entries[i][0]]=entries[i][1];
   return {dataMap:dataMap, allDays:getMonthWeekdays(dashYear,dashMonth)};
 }
-/* x축 레이블 — 월요일 + 첫날 + 마지막날 */
+/* x축 레이블 — 5일 간격 + 첫날 + 마지막날 */
 function drawXLabels(ctx,allDays,n,pL,slotW,h,pB){
-  ctx.fillStyle='#5a5878';ctx.font='9px monospace';ctx.textAlign='center';
+  ctx.fillStyle='#7a9acc';ctx.font='8px monospace';ctx.textAlign='center';
   for(var i=0;i<n;i++){
-    var ds=allDays[i],dow=new Date(ds).getDay();
-    if(i===0||i===n-1||dow===1) ctx.fillText(ds.slice(8),pL+(i+0.5)*slotW,h-pB+14);
+    var day=parseInt(allDays[i].slice(8),10);
+    if(day===1||day%5===0||i===n-1){
+      ctx.fillText(String(day),pL+(i+0.5)*slotW,h-pB+13);
+    }
   }
 }
 
