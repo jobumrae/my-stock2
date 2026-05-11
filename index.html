@@ -696,7 +696,7 @@ body.light-mode .hist-entry {
       <span class="acc-name" style="color:var(--accent2)" id="profitDateLbl">날짜를 선택하세요</span>
       <input class="acc-input" type="text" inputmode="numeric" placeholder="0" id="profitInput" oninput="onNum(this)" style="border-color:rgba(96,165,250,.3)">
     </div>
-    <button class="sub-save-btn" onclick="saveDailyProfit()" style="border-color:rgba(96,165,250,.3);color:var(--accent2)">💰 일간 수익 저장</button>
+    <button class="save-btn" onclick="saveDailyProfit()" style="background:linear-gradient(135deg,#5b8fd4,#3a6abf);box-shadow:0 4px 20px rgba(91,143,212,.3);margin-top:10px">💰 일간 수익 저장</button>
     <div class="save-msg" id="profitMsg"></div>
 
   </div></div>
@@ -976,6 +976,40 @@ function getMonthProfit(){
   }
   return sum;
 }
+/* 연간 실현 수익 합산 */
+function getYearProfit(){
+  var ys=String(dashYear), sum=0;
+  for(var k in dailyProfits){
+    if(dailyProfits.hasOwnProperty(k)&&k.indexOf(ys)===0) sum+=Number(dailyProfits[k])||0;
+  }
+  return sum;
+}
+/* 연간 복리 수익: 올해 첫 기록 대비 현재 */
+function getYearCompound(entries){
+  var ys=String(dashYear), allKeys=[];
+  for(var k in MEM.stockData) if(MEM.stockData.hasOwnProperty(k)&&k.indexOf(ys)===0) allKeys.push(k);
+  allKeys.sort();
+  if(!allKeys.length||!entries.length) return {val:0,pct:'0.00'};
+  var idx=dashEntryIdx===-1?entries.length-1:dashEntryIdx;
+  if(idx>=entries.length) idx=entries.length-1;
+  var cur=getTotal(entries[idx][1]);
+  var yFirst=getTotal(MEM.stockData[allKeys[0]]);
+  var diff=cur-yFirst;
+  var pct=yFirst?((diff/yFirst)*100).toFixed(2):'0.00';
+  return {val:diff, pct:pct};
+}
+
+/* 토글 */
+function toggleProfitPeriod(){
+  profitPeriod = profitPeriod==='month'?'year':'month';
+  drawKpi(getMonthEntries());
+}
+function toggleCompoundPeriod(){
+  compoundPeriod = compoundPeriod==='month'?'year':'month';
+  drawKpi(getMonthEntries());
+}
+window.toggleProfitPeriod   = toggleProfitPeriod;
+window.toggleCompoundPeriod = toggleCompoundPeriod;
 function clsN(n){ return n>0?'up':n<0?'down':'flat'; }
 function padZ(n){ return n<10?'0'+n:String(n); }
 function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+padZ(d.getMonth()+1)+'-'+padZ(d.getDate()); }
@@ -1018,9 +1052,11 @@ var isLightMode = false;
 var loanExcludeMode = false;
 var LOAN_FIXED = 200000000;
 var showAllDays = false;
-var dailyProfits = {};    /* { 'YYYY-MM-DD': amount } — Sheets meta 저장 */
+var dailyProfits = {};
 var amountsHidden = false;
 var hideAmtTimer = null;
+var profitPeriod   = 'month';   /* 실현 수익: 'month' | 'year' */
+var compoundPeriod = 'month';   /* 복리 수익: 'month' | 'year' */
 function setTheme(mode){
   isLightMode = (mode==='light');
   if(isLightMode) document.body.classList.add('light-mode');
@@ -1455,7 +1491,29 @@ function drawKpi(entries){
     ? 'background:rgba(251,113,133,.25);border:1px solid rgba(251,113,133,.5);color:#fb7185;'
     : 'background:var(--surface3);border:1px solid var(--border2);color:var(--text2);';
 
-  var monthProfit = getMonthProfit();
+  /* 복리 수익 계산 */
+  var compoundVal, compoundPct, compoundLbl;
+  if(compoundPeriod==='month'){
+    compoundVal=dMonth; compoundPct=pct;
+    compoundLbl='월간';
+  } else {
+    var yc=getYearCompound(entries);
+    compoundVal=yc.val; compoundPct=yc.pct;
+    compoundLbl='연간';
+  }
+
+  /* 실현 수익 계산 */
+  var profitVal, profitLbl;
+  if(profitPeriod==='month'){
+    profitVal=getMonthProfit(); profitLbl='월간';
+  } else {
+    profitVal=getYearProfit(); profitLbl='연간';
+  }
+
+  /* 토글 버튼 공통 스타일 */
+  var tbBase='font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;cursor:pointer;font-family:\'Pretendard\',\'Noto Sans KR\',sans-serif;border:1px solid var(--border2);transition:all .15s;';
+  var tbOn =tbBase+'background:var(--accent2);color:#0f0f13;border-color:var(--accent2);';
+  var tbOff=tbBase+'background:var(--surface3);color:var(--text2);';
 
   c.innerHTML=
     '<div class="kpi wide" style="position:relative">'+
@@ -1466,14 +1524,24 @@ function drawKpi(entries){
       '<div class="kpi-sub '+clsN(dDay)+'">전일 대비 '+fmtD(dDay)+'</div>'+
     '</div>'+
     '<div class="kpi"><div class="kpi-glow" style="background:rgba(248,113,113,.3)"></div>'+
-      '<div class="kpi-lbl">월간 증감 (복리 수익)</div>'+
-      '<div class="kpi-val '+clsN(dMonth)+'">'+fmtD(dMonth)+'</div>'+
-      '<div class="kpi-sub '+clsN(dMonth)+'">'+(dMonth>=0?'+':'')+pct+'%</div>'+
+      '<div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;gap:4px">'+
+        '<span>'+compoundLbl+'증감 (복리)</span>'+
+        '<button onclick="window.toggleCompoundPeriod()" style="'+(compoundPeriod==='month'?tbOff:tbOn)+'">'+
+          (compoundPeriod==='month'?'연간':'월간')+
+        '</button>'+
+      '</div>'+
+      '<div class="kpi-val '+clsN(compoundVal)+'">'+fmtD(compoundVal)+'</div>'+
+      '<div class="kpi-sub '+clsN(compoundVal)+'">'+(compoundVal>=0?'+':'')+compoundPct+'%</div>'+
     '</div>'+
     '<div class="kpi"><div class="kpi-glow" style="background:rgba(96,165,250,.25)"></div>'+
-      '<div class="kpi-lbl">월간 증감 (실현 수익)</div>'+
-      '<div class="kpi-val '+clsN(monthProfit)+'">'+fmtW(monthProfit)+'</div>'+
-      '<div class="kpi-sub flat">'+dashYear+'년 '+(dashMonth+1)+'월 누적</div>'+
+      '<div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;gap:4px">'+
+        '<span>'+profitLbl+'증감 (실현)</span>'+
+        '<button onclick="window.toggleProfitPeriod()" style="'+(profitPeriod==='month'?tbOff:tbOn)+'">'+
+          (profitPeriod==='month'?'연간':'월간')+
+        '</button>'+
+      '</div>'+
+      '<div class="kpi-val '+clsN(profitVal)+'">'+fmtW(profitVal)+'</div>'+
+      '<div class="kpi-sub flat">'+dashYear+'년 '+(profitPeriod==='month'?(dashMonth+1)+'월 ':'')+'누적</div>'+
     '</div>';
 }
 
