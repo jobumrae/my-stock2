@@ -1101,14 +1101,17 @@ function drawKpi(entries){
     :'background:var(--surface3);border:1px solid var(--border2);color:var(--text2);';
   var loanTxt=loanExcludeMode?'대출제외':'대출포함';
 
-  /* 복리 증감 */
+  /* 복리 증감
+     월간 버튼 = 전일 대비 증감 (dDay)
+     연간 버튼 = 올해 첫 기록 대비 누적 증감 */
   var compVal,compPct;
   if(compoundPeriod==='month'){
-    compVal=dMonth; compPct=pct;
+    compVal=dDay;
+    compPct=prev?((dDay/prev)*100).toFixed(2):'0.00';
   } else {
     var yc=getYearCompound(entries); compVal=yc.val; compPct=yc.pct;
   }
-  var compLbl=(compoundPeriod==='month'?'월간':'연간')+'증감 (복리)';
+  var compLbl=(compoundPeriod==='month'?'전일 대비 증감':'연간 누적 증감')+'(복리)';
   var compBtnTxt=compoundPeriod==='month'?'월간':'연간';
 
   /* 실현 수익 */
