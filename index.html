@@ -161,6 +161,9 @@ body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; background: var(--
 .month-row button.nav:hover { background:var(--surface2); color:var(--text); }
 .month-lbl { font-family:'DM Mono',monospace; font-size:15px; font-weight:700; color:var(--text); }
 .month-row-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
+.hide-amt-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text2); font-size:12px; font-weight:600; padding:6px 12px; border-radius:8px; cursor:pointer; font-family:'Pretendard','Noto Sans KR',sans-serif; transition:all .15s; white-space:nowrap; }
+.hide-amt-btn:hover { background:var(--surface3); color:var(--text); }
+.hide-amt-btn.active { background:rgba(248,113,113,.15); border-color:rgba(248,113,113,.3); color:#f87171; }
 .sync-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text2); font-size:12px; font-weight:600; padding:6px 14px; border-radius:8px; cursor:pointer; font-family:'Pretendard','Noto Sans KR',sans-serif; transition:all .15s; }
 .sync-btn:hover { background:var(--surface3); color:var(--text); }
 .pdf-btn { background:linear-gradient(135deg,rgba(200,160,106,.2),rgba(200,160,106,.1)); border:1px solid rgba(200,160,106,.4); color:var(--accent); font-size:12px; font-weight:700; padding:6px 14px; border-radius:8px; cursor:pointer; font-family:'Pretendard','Noto Sans KR',sans-serif; transition:all .15s; display:flex; align-items:center; gap:5px; }
@@ -684,6 +687,18 @@ body.light-mode .hist-entry {
     <button class="save-btn" onclick="saveEntry()">💾 저장하기</button>
     <div class="save-msg" id="smsg"></div>
 
+    <!-- 일간 수익 실현 금액 -->
+    <div class="broker-hdr" style="margin-top:14px">
+      <span class="broker-badge" style="background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.3)">일간 수익 실현 금액</span>
+      <div class="broker-line"></div>
+    </div>
+    <div class="acc-row" style="margin-bottom:5px">
+      <span class="acc-name" style="color:var(--accent2)" id="profitDateLbl">날짜를 선택하세요</span>
+      <input class="acc-input" type="text" inputmode="numeric" placeholder="0" id="profitInput" oninput="onNum(this)" style="border-color:rgba(96,165,250,.3)">
+    </div>
+    <button class="sub-save-btn" onclick="saveDailyProfit()" style="border-color:rgba(96,165,250,.3);color:var(--accent2)">💰 일간 수익 저장</button>
+    <div class="save-msg" id="profitMsg"></div>
+
   </div></div>
 
   <!-- ══ RIGHT ══ -->
@@ -716,6 +731,7 @@ body.light-mode .hist-entry {
         </div>
 
         <div class="month-row-right">
+          <button class="hide-amt-btn" id="hideAmtBtn" onclick="toggleHideAmounts()">🙈 금액 가리기</button>
           <button class="sync-btn" onclick="pullFromSheets()">↻ 동기화</button>
           <button class="pdf-btn" onclick="exportPDF()">
             <span>⬇</span> PDF 저장
@@ -895,8 +911,71 @@ function persistUrl(u) {
    포맷
 ═══════════════════════════════════ */
 function comma(n){ if(n===''||n===null||n===undefined||isNaN(Number(n))) return '-'; return Number(n).toLocaleString('ko-KR'); }
-function fmtW(n){ var c=comma(n); return c==='-'?'-':'₩'+c; }
-function fmtD(n){ if(!n||n===0) return '-'; return (n>0?'+':'-')+'₩'+Math.abs(n).toLocaleString('ko-KR'); }
+/* 금액 표시 — 가리기 모드면 랜덤 숫자로 */
+function fmtW(n){
+  if(amountsHidden){
+    var fake=Math.floor(Math.random()*900000000)+100000000;
+    return '₩'+fake.toLocaleString('ko-KR');
+  }
+  var c=comma(n); return c==='-'?'-':'₩'+c;
+}
+function fmtD(n){
+  if(amountsHidden){
+    var fake=(Math.random()>0.5?1:-1)*Math.floor(Math.random()*9000000+1000000);
+    return (fake>0?'+':'-')+'₩'+Math.abs(fake).toLocaleString('ko-KR');
+  }
+  if(!n||n===0) return '-'; return (n>0?'+':'-')+'₩'+Math.abs(n).toLocaleString('ko-KR');
+}
+
+/* 금액 가리기 토글 */
+function toggleHideAmounts(){
+  if(hideAmtTimer){ clearTimeout(hideAmtTimer); hideAmtTimer=null; }
+  amountsHidden=true;
+  var btn=document.getElementById('hideAmtBtn');
+  if(btn){ btn.classList.add('active'); btn.textContent='👁 5초 후 복원'; }
+  renderDash(true);
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    var ent=getChartEntries(); drawTotalChart(ent); drawDeltaChart(ent);
+  });});
+  /* 5초 후 복원 */
+  hideAmtTimer=setTimeout(function(){
+    amountsHidden=false;
+    var btn2=document.getElementById('hideAmtBtn');
+    if(btn2){ btn2.classList.remove('active'); btn2.textContent='🙈 금액 가리기'; }
+    renderDash(true);
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      var ent=getChartEntries(); drawTotalChart(ent); drawDeltaChart(ent);
+    });});
+    hideAmtTimer=null;
+  }, 5000);
+}
+
+/* 일간 수익 저장 */
+function saveDailyProfit(){
+  if(!selectedDate){ alert('달력에서 날짜를 선택하세요.'); return; }
+  if(!MEM.scriptUrl){ alert('Google Sheets URL을 먼저 연결하세요.'); return; }
+  var raw=getRaw('profitInput');
+  if(raw===''){ alert('수익 금액을 입력하세요.'); return; }
+  dailyProfits[selectedDate]=Number(raw);
+  var msg=document.getElementById('profitMsg');
+  msg.textContent='⏳ 저장 중...';
+  showLoader('일간 수익 Sheets 저장 중...');
+  doPost({action:'saveMeta',key:'dailyProfits',value:JSON.stringify(dailyProfits)},function(ok){
+    hideLoader();
+    msg.textContent=ok?'✓ '+fmtDate(selectedDate)+' 수익 저장 완료!':'❌ 저장 실패';
+    setTimeout(function(){ msg.textContent=''; },3000);
+    if(ok) setTimeout(function(){ pullFromSheets(); },2000);
+  });
+}
+
+/* 해당 월 실현 수익 합산 */
+function getMonthProfit(){
+  var mm=padZ(dashMonth+1), ym=dashYear+'-'+mm, sum=0;
+  for(var k in dailyProfits){
+    if(dailyProfits.hasOwnProperty(k)&&k.indexOf(ym)===0) sum+=Number(dailyProfits[k])||0;
+  }
+  return sum;
+}
 function clsN(n){ return n>0?'up':n<0?'down':'flat'; }
 function padZ(n){ return n<10?'0'+n:String(n); }
 function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+padZ(d.getMonth()+1)+'-'+padZ(d.getDate()); }
@@ -936,9 +1015,12 @@ function hideLoader(){ document.getElementById('loader').classList.remove('on');
 ═══════════════════════════════════ */
 /* ── 테마 / 밝기 ── */
 var isLightMode = false;
-var loanExcludeMode = false;   /* 대출제외 토글 상태 */
-var LOAN_FIXED = 200000000;    /* 고정 대출금 2억 */
-var showAllDays = false;       /* 전체 평일 기준 차트 */
+var loanExcludeMode = false;
+var LOAN_FIXED = 200000000;
+var showAllDays = false;
+var dailyProfits = {};    /* { 'YYYY-MM-DD': amount } — Sheets meta 저장 */
+var amountsHidden = false;
+var hideAmtTimer = null;
 function setTheme(mode){
   isLightMode = (mode==='light');
   if(isLightMode) document.body.classList.add('light-mode');
@@ -1053,6 +1135,12 @@ function pullFromSheets(){
       }
       MEM.stockData=clean;
       var cnt=Object.keys(clean).length;
+      /* 메타 (대출금/추가예수금/일간수익) 로드 */
+      if(result.meta){
+        try{ if(result.meta.loanData)  loanData=JSON.parse(result.meta.loanData); buildLoanUI(); }catch(e){}
+        try{ if(result.meta.extraData) extraData=JSON.parse(result.meta.extraData); buildExtraUI(); }catch(e){}
+        try{ if(result.meta.dailyProfits) dailyProfits=JSON.parse(result.meta.dailyProfits); }catch(e){}
+      }
       setDot('ok', cnt+'개 기록');
       console.log('[Sheets] 로드 완료:', cnt+'개');
     } else {
@@ -1134,7 +1222,13 @@ function buildCal(){
   document.getElementById('calSelLabel').textContent=selectedDate?fmtDate(selectedDate):'날짜를 선택하세요';
 }
 function calMove(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}buildCal();}
-function selectDate(ds){selectedDate=ds;buildCal();buildGrid();}
+function selectDate(ds){
+  selectedDate=ds; buildCal(); buildGrid();
+  var lbl=document.getElementById('profitDateLbl');
+  if(lbl) lbl.textContent=fmtDate(ds);
+  var pi=document.getElementById('profitInput');
+  if(pi) pi.value=dailyProfits[ds]?Number(dailyProfits[ds]).toLocaleString('ko-KR'):'';
+}
 
 /* ═══════════════════════════════════
    입력
@@ -1361,24 +1455,25 @@ function drawKpi(entries){
     ? 'background:rgba(251,113,133,.25);border:1px solid rgba(251,113,133,.5);color:#fb7185;'
     : 'background:var(--surface3);border:1px solid var(--border2);color:var(--text2);';
 
+  var monthProfit = getMonthProfit();
+
   c.innerHTML=
     '<div class="kpi wide" style="position:relative">'+
       '<div class="kpi-glow" style="background:rgba(200,160,106,.4)"></div>'+
-      /* 버튼: 카드 우측 중앙 */
       '<button onclick="window.toggleLoanExclude()" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);'+btnStyle+'font-size:11px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:\'Pretendard\',\'Noto Sans KR\',sans-serif;white-space:nowrap;transition:all .15s">'+btnLabel+'</button>'+
       '<div class="kpi-lbl">현재 총 자산'+(loanExcludeMode?' <span style="font-size:10px;color:#fb7185">(대출 -₩200,000,000)</span>':'')+'</div>'+
       '<div class="kpi-val" style="padding-right:80px">'+fmtW(dispTotal)+'</div>'+
       '<div class="kpi-sub '+clsN(dDay)+'">전일 대비 '+fmtD(dDay)+'</div>'+
     '</div>'+
     '<div class="kpi"><div class="kpi-glow" style="background:rgba(248,113,113,.3)"></div>'+
-      '<div class="kpi-lbl">월간 증감</div>'+
+      '<div class="kpi-lbl">월간 증감 (복리 수익)</div>'+
       '<div class="kpi-val '+clsN(dMonth)+'">'+fmtD(dMonth)+'</div>'+
       '<div class="kpi-sub '+clsN(dMonth)+'">'+(dMonth>=0?'+':'')+pct+'%</div>'+
     '</div>'+
-    '<div class="kpi">'+
-      '<div class="kpi-lbl">이번 달 기록</div>'+
-      '<div class="kpi-val">'+(idx+1)+'<span style="font-size:14px;color:var(--text3)"> / '+entries.length+'일</span></div>'+
-      '<div class="kpi-sub flat">'+entries[0][0].slice(5)+' ~ '+entries[entries.length-1][0].slice(5)+'</div>'+
+    '<div class="kpi"><div class="kpi-glow" style="background:rgba(96,165,250,.25)"></div>'+
+      '<div class="kpi-lbl">월간 증감 (실현 수익)</div>'+
+      '<div class="kpi-val '+clsN(monthProfit)+'">'+fmtW(monthProfit)+'</div>'+
+      '<div class="kpi-sub flat">'+dashYear+'년 '+(dashMonth+1)+'월 누적</div>'+
     '</div>';
 }
 
