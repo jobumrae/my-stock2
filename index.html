@@ -212,6 +212,7 @@ body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; background: var(--
   @page { margin:15mm 12mm; size:A4 portrait; }
 
   /* 차트 크기 고정 */
+  .chart-canvas-outer { aspect-ratio: 10/7 !important; }
   canvas { max-width:100% !important; }
   .chart-row { grid-template-columns:1fr 1fr !important; gap:12px !important; }
   .kpi-grid { grid-template-columns:repeat(4,1fr) !important; }
@@ -248,13 +249,18 @@ body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; background: var(--
 .cbox-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:6px; }
 .cbox-title { font-size:13px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:7px; }
 .cbox-title .period { font-size:10px; font-weight:500; background:var(--surface2); color:var(--text3); padding:2px 8px; border-radius:6px; border:1px solid var(--border); }
+/* 차트 캔버스 — 가로폭 대비 70% 높이로 고정 */
+.chart-canvas-outer { width:100%; aspect-ratio: 10/7; position:relative; overflow:hidden; }
+.chart-canvas-outer canvas { position:absolute; inset:0; width:100%!important; height:100%!important; display:block; }
 
 /* chart type toggle */
 .chart-type-btns { display:flex; gap:3px; background:var(--surface2); border-radius:8px; padding:3px; border:1px solid var(--border); }
 .ct-btn { padding:4px 9px; font-size:10px; font-weight:700; cursor:pointer; border:none; background:transparent; color:var(--text3); border-radius:6px; transition:all .15s; white-space:nowrap; letter-spacing:.2px; }
 .ct-btn:hover { color:var(--text2); }
 .ct-btn.on { background:var(--surface3); color:var(--text); box-shadow:0 1px 4px rgba(0,0,0,.3); }
-canvas { width:100%!important; display:block; }
+canvas { width:100%!important; display:block; height:auto!important; }
+.cbox-canvas-wrap { position:relative; width:100%; }
+.cbox-canvas-wrap canvas { width:100%!important; display:block; }
 
 /* ── Day navigator ── */
 .day-nav { display:flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:3px 6px; margin-left:6px; }
@@ -491,10 +497,10 @@ tbody tr:last-child td { border-bottom:none; }
   .hist-grid { grid-template-columns: 1fr; }
 }
 
-/* ── 금액 가리기 버튼 ── */
-/* .hide-amt-btn removed */ background:var(--surface2); border:1px solid var(--border); color:var(--text2); font-size:12px; font-weight:600; padding:6px 12px; border-radius:8px; cursor:pointer; font-family:inherit; transition:all .15s; white-space:nowrap; }
-/* removed */ background:var(--surface3); color:var(--text); }
-/* removed */ background:rgba(248,113,113,.15); border-color:rgba(248,113,113,.3); color:#f87171; }
+/* ── 금액 감추기 버튼 ── */
+.hide-amt-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text2); font-size:12px; font-weight:600; padding:6px 12px; border-radius:8px; cursor:pointer; font-family:inherit; transition:all .15s; white-space:nowrap; }
+.hide-amt-btn:hover { background:var(--surface3); color:var(--text); }
+.hide-amt-btn.active { background:rgba(248,113,113,.15); border-color:rgba(248,113,113,.3); color:#f87171; }
 /* ── 미니 수익 달력 ── */
 .profit-cal-wrap { background:var(--surface); border:1.5px solid rgba(96,165,250,.3); border-radius:12px; padding:10px; margin-bottom:8px; }
 .profit-cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
@@ -753,6 +759,7 @@ body.light-mode .hist-entry {
         </div>
 
         <div class="month-row-right">
+          <button class="hide-amt-btn" id="hideAmtBtn" onclick="toggleHideAmount()">👁 금액 감추기</button>
           <button class="sync-btn" onclick="pullFromSheets()">↻ 동기화</button>
           <button class="pdf-btn" onclick="exportPDF()">
             <span>⬇</span> PDF 저장
@@ -774,7 +781,7 @@ body.light-mode .hist-entry {
               <button class="ct-btn all-days-btn" id="allDaysBtn1" onclick="toggleAllDays()">전체 일자</button>
             </div>
           </div>
-          <canvas id="cvTotal" height="130"></canvas>
+          <div class="chart-canvas-outer"><canvas id="cvTotal"></canvas></div>
         </div>
         <!-- 일별 증감 -->
         <div class="cbox">
@@ -786,7 +793,7 @@ body.light-mode .hist-entry {
               <button class="ct-btn all-days-btn" id="allDaysBtn2" onclick="toggleAllDays()">전체 일자</button>
             </div>
           </div>
-          <canvas id="cvDelta" height="130"></canvas>
+          <div class="chart-canvas-outer"><canvas id="cvDelta"></canvas></div>
           <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap" id="dleg"></div>
         </div>
       </div>
@@ -953,7 +960,7 @@ function getYe(e){ if(!e||e.yesueum===undefined||e.yesueum===''||e.yesueum===nul
 /* ═══════════════════════════════════
    UI 헬퍼
 ═══════════════════════════════════ */
-function setDot(s,t){ document.getElementById('dot').className='dot '+s; document.getElementById('stxt').textContent=t; }
+function setDot(s,t){ document.getElementById('dot').className='dot'+(s?' '+s:''); document.getElementById('stxt').textContent=t; }
 function showLoader(t){ document.getElementById('ltxt').textContent=t||'처리 중...'; document.getElementById('loader').classList.add('on'); }
 function hideLoader(){ document.getElementById('loader').classList.remove('on'); }
 
@@ -1182,8 +1189,11 @@ function goTab(tab){
 ═══════════════════════════════════ */
 function setChartType(which,type,btn){
   chartTypes[which]=type;
+  /* 같은 그룹 내 chart-type 버튼만 토글 (all-days-btn 제외) */
   var btns=btn.parentNode.querySelectorAll('.ct-btn');
-  for(var i=0;i<btns.length;i++) btns[i].classList.remove('on');
+  for(var i=0;i<btns.length;i++){
+    if(!btns[i].classList.contains('all-days-btn')) btns[i].classList.remove('on');
+  }
   btn.classList.add('on');
   var entries=getMonthEntries();
   requestAnimationFrame(function(){ if(which==='total') drawTotalChart(entries); else drawDeltaChart(entries); });
@@ -1192,7 +1202,13 @@ function setChartType(which,type,btn){
 /* ═══════════════════════════════════
    대시보드
 ═══════════════════════════════════ */
-function chMon(d){ dashMonth+=d; if(dashMonth>11){dashMonth=0;dashYear++;} if(dashMonth<0){dashMonth=11;dashYear--;} dashEntryIdx=-1; renderDash(); }
+function chMon(d){
+  dashMonth+=d;
+  if(dashMonth>11){dashMonth=0;dashYear++;}
+  if(dashMonth<0){dashMonth=11;dashYear--;}
+  dashEntryIdx=-1; /* 말일(마지막 입력일)로 자동 이동 */
+  renderDash();
+}
 function getMonthEntries(){
   var mm=padZ(dashMonth+1), ym=dashYear+'-'+mm, res=[];
   for(var k in MEM.stockData) if(MEM.stockData.hasOwnProperty(k)&&k.indexOf(ym)===0) res.push([k,MEM.stockData[k]]);
@@ -1226,6 +1242,7 @@ function renderDash(){
   document.getElementById('cperiod1').textContent=ml;
   document.getElementById('cperiod2').textContent=ml;
   var entries=getMonthEntries();
+  /* dashEntryIdx=-1이면 말일(마지막 입력일) 자동 선택 */
   if(dashEntryIdx===-1&&entries.length>0) dashEntryIdx=entries.length-1;
   if(entries.length>0&&dashEntryIdx>=entries.length) dashEntryIdx=entries.length-1;
   updateDayView(entries);
@@ -1237,14 +1254,24 @@ var loanExcludeMode=false, LOAN_FIXED=200000000;
 var profitPeriod='month', compoundPeriod='month';
 var dailyProfits={};
 
-function getMonthProfit(){
+function getMonthProfit(upToDate){
   var mm=padZ(dashMonth+1),ym=dashYear+'-'+mm,sum=0;
-  for(var k in dailyProfits) if(dailyProfits.hasOwnProperty(k)&&k.indexOf(ym)===0) sum+=Number(dailyProfits[k])||0;
+  for(var k in dailyProfits){
+    if(!dailyProfits.hasOwnProperty(k)) continue;
+    if(k.indexOf(ym)!==0) continue;
+    if(upToDate && k>upToDate) continue;
+    sum+=Number(dailyProfits[k])||0;
+  }
   return sum;
 }
-function getYearProfit(){
+function getYearProfit(upToDate){
   var ys=String(dashYear),sum=0;
-  for(var k in dailyProfits) if(dailyProfits.hasOwnProperty(k)&&k.indexOf(ys)===0) sum+=Number(dailyProfits[k])||0;
+  for(var k in dailyProfits){
+    if(!dailyProfits.hasOwnProperty(k)) continue;
+    if(k.indexOf(ys)!==0) continue;
+    if(upToDate && k>upToDate) continue;
+    sum+=Number(dailyProfits[k])||0;
+  }
   return sum;
 }
 function getYearCompound(entries){
@@ -1271,11 +1298,8 @@ function drawKpi(entries){
   if(idx>=entries.length) idx=entries.length-1;
   var last=entries[idx][1], total=getTotal(last);
   var prev=idx>0?getTotal(entries[idx-1][1]):total;
-  /* dMonth: 이달 첫 입력일 총자산 대비 현재 증감 */
   var first=getTotal(entries[0][1]);
   var dDay=total-prev;
-  var dMonth=total-first;
-  var pct=first?((dMonth/first)*100).toFixed(2):'0.00';
 
   /* 대출포함/제외 */
   var dispTotal=loanExcludeMode?total-LOAN_FIXED:total;
@@ -1284,28 +1308,34 @@ function drawKpi(entries){
     :'background:var(--surface3);border:1px solid var(--border2);color:var(--text2);';
   var loanTxt=loanExcludeMode?'대출제외':'대출포함';
 
-  /* 복리 증감
-     월간 버튼 = 전일 대비 증감 (dDay)
-     연간 버튼 = 올해 첫 기록 대비 누적 증감 */
+  /* ── 당월 누적 증감 = 전일 대비 +/- 의 idx까지 누적 합산 ── */
   var compVal,compPct;
   if(compoundPeriod==='month'){
-    compVal=dDay;
-    compPct=prev?((dDay/prev)*100).toFixed(2):'0.00';
+    var cumSum=0;
+    for(var ci=1;ci<=idx;ci++){
+      cumSum+=(getTotal(entries[ci][1])-getTotal(entries[ci-1][1]));
+    }
+    compVal=cumSum;
+    compPct=first&&first!==0?((compVal/first)*100).toFixed(2):'0.00';
   } else {
     var yc=getYearCompound(entries); compVal=yc.val; compPct=yc.pct;
   }
-  var compLbl=(compoundPeriod==='month'?'전일 대비 증감':'연간 누적 증감')+'(복리)';
+  var compLbl=(compoundPeriod==='month'?'당월 누적 증감':'연간 누적 증감')+'(복리)';
   var compBtnTxt=compoundPeriod==='month'?'월간':'연간';
 
-  /* 실현 수익 */
-  var profitVal=(profitPeriod==='month')?getMonthProfit():getYearProfit();
-  var profitLbl=(profitPeriod==='month'?'월간':'연간')+'증감 (실현 수익)';
-  var profitBtnTxt=profitPeriod==='month'?'월간':'연간';
-
-  /* 당일 수익 */
+  /* 당일 수익 — 전일 대비와 동일 행, 우측 정렬 */
   var curDs=entries[idx][0];
   var dayP=dailyProfits[curDs]?Number(dailyProfits[curDs]):0;
-  var dayPHtml=dayP!==0?' &nbsp;<span style="color:#fbbf24;font-size:10px;font-weight:700">실현 '+fmtW(dayP)+'</span>':'';
+
+  /* 실현 수익 — 선택 일자 기준 누적 (월간/연간) */
+  var profitVal=(profitPeriod==='month')?getMonthProfit(curDs):getYearProfit(curDs);
+  var profitLbl=(profitPeriod==='month'?'월간':'연간')+'증감 (실현 수익)';
+  var profitBtnTxt=profitPeriod==='month'?'월간':'연간';
+  /* 전일 대비 + 당일 수익 실현을 한 줄로: 전일 대비는 왼쪽, 당일 수익 실현은 오른쪽 */
+  var dDayHtml='<div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;gap:8px">'+
+    '<span style="font-family:\'DM Mono\',monospace;font-size:15px;font-weight:700" class="'+clsN(dDay)+'">전일 대비 '+fmtD(dDay)+'</span>'+
+    (dayP!==0?'<span style="color:#fbbf24;font-size:15px;font-weight:800;white-space:nowrap">당일 수익 실현 '+fmtW(dayP)+'</span>':'<span></span>')+
+  '</div>';
 
   var btnBase='font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;cursor:pointer;border:1px solid;transition:all .15s;';
   var btnOn=btnBase+'background:var(--accent2);color:#0a0e1a;border-color:var(--accent2);';
@@ -1317,7 +1347,7 @@ function drawKpi(entries){
       '<button id="loanExclBtn" style="position:absolute;right:10px;top:12px;'+loanStyle+'font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;">'+loanTxt+'</button>'+
       '<div class="kpi-lbl">현재 총 자산'+(loanExcludeMode?' <span style="font-size:10px;color:#fb7185">(대출 -&#8361;200,000,000)</span>':'')+'</div>'+
       '<div class="kpi-val" style="padding-right:90px">'+fmtW(dispTotal)+'</div>'+
-      '<div class="kpi-sub '+clsN(dDay)+'">전일 대비 '+fmtD(dDay)+dayPHtml+'</div>'+
+      dDayHtml+
     '</div>'+
     '<div class="kpi">'+
       '<div class="kpi-glow" style="background:rgba(248,113,113,.3);pointer-events:none"></div>'+
@@ -1325,7 +1355,6 @@ function drawKpi(entries){
         '<span>'+compLbl+'</span>'+
         '<button id="cPeriodBtn" style="'+(compoundPeriod==='month'?btnOff:btnOn)+'">'+compBtnTxt+'</button>'+
       '</div>'+
-      /* 복리 증감: 반드시 fmtD (증감액) */
       '<div class="kpi-val '+clsN(compVal)+'">'+(compVal===0?'±₩0':(compVal>0?'+₩':'-₩')+Math.abs(compVal).toLocaleString('ko-KR'))+'</div>'+
       '<div class="kpi-sub '+clsN(compVal)+'">'+(compVal>=0?'+':'')+compPct+'%</div>'+
     '</div>'+
@@ -1371,86 +1400,149 @@ function drawBrokerPills(entries){
 ═══════════════════════════════════ */
 function getCtx(id){
   var cv=document.getElementById(id), ctx=cv.getContext('2d');
-  var dpr=window.devicePixelRatio||1, w=cv.offsetWidth;
-  if(!w&&cv.parentElement) w=cv.parentElement.offsetWidth;
+  var dpr=window.devicePixelRatio||1;
+  var outer=cv.parentElement; // .chart-canvas-outer
+  var w=outer?outer.offsetWidth:cv.offsetWidth;
+  if(!w&&cv.parentElement&&cv.parentElement.parentElement) w=cv.parentElement.parentElement.offsetWidth;
   if(!w) w=500;
-  var h=parseInt(cv.getAttribute('height'))||130;
+  var h=outer?outer.offsetHeight:Math.round(w*0.7);
+  if(!h) h=Math.round(w*0.7);
   cv.width=w*dpr; cv.height=h*dpr; ctx.scale(dpr,dpr); ctx.clearRect(0,0,w,h);
   return {ctx:ctx,w:w,h:h};
 }
 function drawTotalChart(entries){
   var r=getCtx('cvTotal'),ctx=r.ctx,w=r.w,h=r.h,type=chartTypes['total'];
-  if(entries.length<2){ctx.fillStyle='#5a5878';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('데이터 2개 이상 필요',w/2,h/2);return;}
-  var tots=[],labs=[];
-  for(var i=0;i<entries.length;i++){tots.push(getTotal(entries[i][1]));labs.push(entries[i][0].slice(8));}
-  var mn=tots[0],mx=tots[0];
-  for(var j=1;j<tots.length;j++){if(tots[j]<mn)mn=tots[j];if(tots[j]>mx)mx=tots[j];}
+
+  /* 전체 일자 모드 */
+  var chartData; // [{label, value|null}]
+  if(showAllDays){
+    var fullDays=getFullWeekdayEntries();
+    chartData=fullDays.map(function(item){ return {label:item[0].slice(8), value:item[1]?getTotal(item[1]):null}; });
+  } else {
+    if(entries.length<2){ctx.fillStyle='#5a5878';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('데이터 2개 이상 필요',w/2,h/2);return;}
+    chartData=entries.map(function(item){ return {label:item[0].slice(8), value:getTotal(item[1])}; });
+  }
+
+  /* 값이 있는 것만 min/max 계산 */
+  var tots=chartData.map(function(d){return d.value;}), labs=chartData.map(function(d){return d.label;});
+  var validTots=tots.filter(function(v){return v!==null;});
+  if(validTots.length<2){ctx.fillStyle='#5a5878';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('데이터 2개 이상 필요',w/2,h/2);return;}
+  var mn=validTots[0],mx=validTots[0];
+  for(var j=0;j<validTots.length;j++){if(validTots[j]<mn)mn=validTots[j];if(validTots[j]>mx)mx=validTots[j];}
   var pad=Math.max((mx-mn)*0.3,mx*0.05),mnA=Math.max(0,mn-pad),rng=mx-mnA||1;
   var pT=16,pB=26,pL=10,pR=10,cw=w-pL-pR,ch=h-pT-pB;
-  var step=Math.max(1,Math.floor(tots.length/8));
+  var n=tots.length;
+  var step=Math.max(1,Math.floor(n/8));
   if(type==='bar'){
-    var bw=Math.max(6,cw/tots.length-3);
-    for(var k=0;k<tots.length;k++){
-      var x=pL+(k/tots.length)*cw+(cw/tots.length-bw)/2;
-      var bh=Math.max(3,((tots[k]-mnA)/rng)*ch);
-      var g=ctx.createLinearGradient(0,h-pB-bh,0,h-pB);
-      g.addColorStop(0,'rgba(200,160,106,.85)');g.addColorStop(1,'rgba(200,160,106,.25)');
-      ctx.fillStyle=g;
-      if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x,h-pB-bh,bw,bh,[3,3,0,0]);ctx.fill();}else ctx.fillRect(x,h-pB-bh,bw,bh);
-      if(k%step===0||k===tots.length-1){ctx.fillStyle='#5a5878';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText(labs[k],x+bw/2,h-8);}
+    var bw=Math.max(4,cw/n-3);
+    for(var k=0;k<n;k++){
+      var x=pL+(k/n)*cw+(cw/n-bw)/2;
+      if(tots[k]===null){
+        /* 데이터 없는 날: 점선 구분 */
+        ctx.strokeStyle='rgba(90,88,120,.3)'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
+        ctx.beginPath(); ctx.moveTo(x+bw/2,pT); ctx.lineTo(x+bw/2,h-pB); ctx.stroke();
+        ctx.setLineDash([]);
+      } else {
+        var bh=Math.max(3,((tots[k]-mnA)/rng)*ch);
+        var g=ctx.createLinearGradient(0,h-pB-bh,0,h-pB);
+        g.addColorStop(0,'rgba(200,160,106,.85)');g.addColorStop(1,'rgba(200,160,106,.25)');
+        ctx.fillStyle=g;
+        if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x,h-pB-bh,bw,bh,[3,3,0,0]);ctx.fill();}else ctx.fillRect(x,h-pB-bh,bw,bh);
+      }
+      if(k%step===0||k===n-1){ctx.fillStyle='#5a5878';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText(labs[k],x+bw/2,h-8);}
     }
   } else {
-    var xf=function(i){return pL+(i/(tots.length-1))*cw;};
+    var xf=function(i){return pL+(i/(n-1||1))*cw;};
     var yf=function(v){return pT+ch-((v-mnA)/rng)*ch;};
-    var g2=ctx.createLinearGradient(0,pT,0,pT+ch);
-    g2.addColorStop(0,'rgba(200,160,106,.22)');g2.addColorStop(1,'rgba(200,160,106,0)');
-    ctx.beginPath();ctx.moveTo(xf(0),yf(tots[0]));
-    for(var l=1;l<tots.length;l++) ctx.lineTo(xf(l),yf(tots[l]));
-    ctx.lineTo(xf(tots.length-1),h-pB);ctx.lineTo(xf(0),h-pB);ctx.closePath();ctx.fillStyle=g2;ctx.fill();
-    ctx.beginPath();ctx.moveTo(xf(0),yf(tots[0]));
-    for(var m=1;m<tots.length;m++) ctx.lineTo(xf(m),yf(tots[m]));
-    ctx.strokeStyle='#c8a06a';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
-    for(var n=0;n<tots.length;n++){
-      ctx.beginPath();ctx.arc(xf(n),yf(tots[n]),3.5,0,Math.PI*2);ctx.fillStyle='#c8a06a';ctx.fill();
-      if(n%step===0||n===tots.length-1){ctx.fillStyle='#5a5878';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText(labs[n],xf(n),h-8);}
+    /* 그라디언트 fill: 유효값만 연결 */
+    var firstValid=null;
+    for(var fi=0;fi<n;fi++){if(tots[fi]!==null){firstValid=fi;break;}}
+    if(firstValid!==null){
+      var g2=ctx.createLinearGradient(0,pT,0,pT+ch);
+      g2.addColorStop(0,'rgba(200,160,106,.22)');g2.addColorStop(1,'rgba(200,160,106,0)');
+      ctx.beginPath();
+      var started=false;
+      for(var l=0;l<n;l++){
+        if(tots[l]===null) continue;
+        if(!started){ctx.moveTo(xf(l),yf(tots[l]));started=true;}else ctx.lineTo(xf(l),yf(tots[l]));
+      }
+      /* 닫기 */
+      var lastValid=null; for(var lv=n-1;lv>=0;lv--){if(tots[lv]!==null){lastValid=lv;break;}}
+      ctx.lineTo(xf(lastValid),h-pB);ctx.lineTo(xf(firstValid),h-pB);ctx.closePath();ctx.fillStyle=g2;ctx.fill();
+      /* 선 */
+      ctx.beginPath();started=false;
+      for(var m=0;m<n;m++){
+        if(tots[m]===null){started=false;continue;}
+        if(!started){ctx.moveTo(xf(m),yf(tots[m]));started=true;}else ctx.lineTo(xf(m),yf(tots[m]));
+      }
+      ctx.strokeStyle='#c8a06a';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
+      /* 점 */
+      for(var nn=0;nn<n;nn++){
+        if(tots[nn]!==null){ctx.beginPath();ctx.arc(xf(nn),yf(tots[nn]),3.5,0,Math.PI*2);ctx.fillStyle='#c8a06a';ctx.fill();}
+        if(n===1||(nn%step===0||nn===n-1)){ctx.fillStyle='#5a5878';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText(labs[nn],xf(nn),h-8);}
+      }
     }
   }
 }
 function drawDeltaChart(entries){
   var r=getCtx('cvDelta'),ctx=r.ctx,w=r.w,h=r.h,type=chartTypes['delta'];
   document.getElementById('dleg').innerHTML='';
-  if(entries.length<2){ctx.fillStyle='#5a5878';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('2일 이상 데이터 필요',w/2,h/2);return;}
+
   var deltas=[],dlabs=[];
-  for(var i=1;i<entries.length;i++){deltas.push(getTotal(entries[i][1])-getTotal(entries[i-1][1]));dlabs.push(entries[i][0].slice(8));}
-  var mxA=1;for(var j=0;j<deltas.length;j++) if(Math.abs(deltas[j])>mxA) mxA=Math.abs(deltas[j]);
+  if(showAllDays){
+    var fullDays=getFullWeekdayEntries();
+    for(var i=1;i<fullDays.length;i++){
+      var cur=fullDays[i][1], prv=fullDays[i-1][1];
+      dlabs.push(fullDays[i][0].slice(8));
+      if(cur&&prv) deltas.push(getTotal(cur)-getTotal(prv));
+      else deltas.push(null);
+    }
+  } else {
+    if(entries.length<2){ctx.fillStyle='#5a5878';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('2일 이상 데이터 필요',w/2,h/2);return;}
+    for(var ei=1;ei<entries.length;ei++){deltas.push(getTotal(entries[ei][1])-getTotal(entries[ei-1][1]));dlabs.push(entries[ei][0].slice(8));}
+  }
+
+  var validDeltas=deltas.filter(function(v){return v!==null;});
+  if(validDeltas.length<1){ctx.fillStyle='#5a5878';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('2일 이상 데이터 필요',w/2,h/2);return;}
+
+  var mxA=1;for(var j=0;j<validDeltas.length;j++) if(Math.abs(validDeltas[j])>mxA) mxA=Math.abs(validDeltas[j]);
   var pT=10,pB=24,pL=6,pR=6,cw=w-pL-pR,ch=h-pT-pB,midY=pT+ch/2;
   var maxBarH=ch/2*0.85, step=Math.max(1,Math.floor(deltas.length/8));
+  var nn=deltas.length;
   ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pL,midY);ctx.lineTo(w-pR,midY);ctx.stroke();
   var upC='rgba(248,113,113,.85)', dnC='rgba(96,165,250,.85)';
   if(type==='bar'){
-    var bw=Math.max(6,cw/deltas.length-2);
-    for(var k=0;k<deltas.length;k++){
-      var x=pL+(k/deltas.length)*cw+(cw/deltas.length-bw)/2;
-      var bh=Math.max(2,(Math.abs(deltas[k])/mxA)*maxBarH);
-      var isUp=deltas[k]>=0;
-      ctx.fillStyle=isUp?upC:dnC;
-      if(ctx.roundRect){ctx.beginPath();if(isUp)ctx.roundRect(x,midY-bh,bw,bh,[3,3,0,0]);else ctx.roundRect(x,midY,bw,bh,[0,0,3,3]);ctx.fill();}
-      else{if(isUp)ctx.fillRect(x,midY-bh,bw,bh);else ctx.fillRect(x,midY,bw,bh);}
-      if(k%step===0||k===deltas.length-1){ctx.fillStyle='#5a5878';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText(dlabs[k],x+bw/2,h-6);}
+    var bw=Math.max(4,cw/nn-2);
+    for(var k=0;k<nn;k++){
+      var x=pL+(k/nn)*cw+(cw/nn-bw)/2;
+      if(deltas[k]===null){
+        ctx.strokeStyle='rgba(90,88,120,.25)'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
+        ctx.beginPath(); ctx.moveTo(x+bw/2,pT+4); ctx.lineTo(x+bw/2,h-pB-4); ctx.stroke();
+        ctx.setLineDash([]);
+      } else {
+        var bh=Math.max(2,(Math.abs(deltas[k])/mxA)*maxBarH);
+        var isUp=deltas[k]>=0;
+        ctx.fillStyle=isUp?upC:dnC;
+        if(ctx.roundRect){ctx.beginPath();if(isUp)ctx.roundRect(x,midY-bh,bw,bh,[3,3,0,0]);else ctx.roundRect(x,midY,bw,bh,[0,0,3,3]);ctx.fill();}
+        else{if(isUp)ctx.fillRect(x,midY-bh,bw,bh);else ctx.fillRect(x,midY,bw,bh);}
+      }
+      if(k%step===0||k===nn-1){ctx.fillStyle='#5a5878';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText(dlabs[k],x+bw/2,h-6);}
     }
   } else {
-    var xf=function(i){return pL+(i/(deltas.length-1||1))*cw;};
+    var xf=function(i){return pL+(i/(nn-1||1))*cw;};
     var yf=function(v){return midY-((v)/mxA)*maxBarH;};
-    ctx.beginPath();ctx.moveTo(xf(0),midY);
-    for(var l=0;l<deltas.length;l++) ctx.lineTo(xf(l),yf(deltas[l]));
-    ctx.lineTo(xf(deltas.length-1),midY);ctx.closePath();ctx.fillStyle='rgba(200,160,106,.08)';ctx.fill();
-    ctx.beginPath();ctx.moveTo(xf(0),yf(deltas[0]));
-    for(var l2=1;l2<deltas.length;l2++) ctx.lineTo(xf(l2),yf(deltas[l2]));
+    ctx.beginPath();var started=false;
+    for(var l=0;l<nn;l++){
+      if(deltas[l]===null){started=false;continue;}
+      if(!started){ctx.moveTo(xf(l),yf(deltas[l]));started=true;}else ctx.lineTo(xf(l),yf(deltas[l]));
+    }
     ctx.strokeStyle='rgba(200,160,106,.75)';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
-    for(var m=0;m<deltas.length;m++){
-      ctx.beginPath();ctx.arc(xf(m),yf(deltas[m]),3.5,0,Math.PI*2);
-      ctx.fillStyle=deltas[m]>=0?'#f87171':'#60a5fa';ctx.fill();
-      if(m%step===0||m===deltas.length-1){ctx.fillStyle='#5a5878';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText(dlabs[m],xf(m),h-6);}
+    for(var m=0;m<nn;m++){
+      if(deltas[m]!==null){
+        ctx.beginPath();ctx.arc(xf(m),yf(deltas[m]),3.5,0,Math.PI*2);
+        ctx.fillStyle=deltas[m]>=0?'#f87171':'#60a5fa';ctx.fill();
+      }
+      if(m%step===0||m===nn-1){ctx.fillStyle='#5a5878';ctx.font='9px monospace';ctx.textAlign='center';ctx.fillText(dlabs[m],xf(m),h-6);}
     }
   }
   document.getElementById('dleg').innerHTML=
@@ -1759,6 +1851,102 @@ function toggleAllDays(){
   var ent=getMonthEntries();
   requestAnimationFrame(function(){ drawTotalChart(ent); drawDeltaChart(ent); });
 }
+
+/* 전체 일자 모드: 당월 평일 전체 날짜 배열 생성 (데이터 없으면 null) */
+function getFullWeekdayEntries(){
+  var days=getMonthWeekdays(dashYear,dashMonth);
+  var result=[];
+  for(var i=0;i<days.length;i++){
+    var ds=days[i];
+    result.push([ds, MEM.stockData[ds]||null]);
+  }
+  return result;
+}
+
+/* ═══ 금액 감추기 ═══ */
+var _hideAmtTimer = null;
+var _hideAmtActive = false;
+
+function fakeNum(n){
+  /* n과 비슷한 자릿수의 랜덤 숫자 반환 */
+  if(typeof n !== 'number' || isNaN(n)) return n;
+  var digits = String(Math.abs(Math.round(n))).length;
+  var min = Math.pow(10, digits-1);
+  var max = Math.pow(10, digits) - 1;
+  var rand = Math.floor(Math.random()*(max-min+1))+min;
+  return (n < 0 ? -1 : 1) * rand;
+}
+
+function scrambleText(el){
+  /* 금액처럼 생긴 텍스트를 랜덤으로 바꾸기 */
+  var text = el.textContent;
+  /* ₩123,456,789 형태의 숫자 치환 */
+  el.textContent = text.replace(/([-+]?)₩([\d,]+)/g, function(match, sign, numStr){
+    var n = parseInt(numStr.replace(/,/g,''), 10);
+    var fake = fakeNum(n);
+    return sign + '₩' + Math.abs(fake).toLocaleString('ko-KR');
+  }).replace(/([-+]?)([\d]{3,}(?:,[\d]{3})+)/g, function(match, sign, numStr){
+    var n = parseInt(numStr.replace(/,/g,''), 10);
+    var fake = fakeNum(n);
+    return sign + Math.abs(fake).toLocaleString('ko-KR');
+  });
+}
+
+function applyScramble(el, originals){
+  var nodes = el.querySelectorAll(
+    '.kpi-val, .kpi-sub, .bpill-val, .bpill-delta, .tbox-sub, .hist-total, td, .kpi-lbl span'
+  );
+  nodes.forEach(function(node){
+    if(!originals.has(node)) originals.set(node, node.innerHTML);
+    /* 텍스트 노드만 치환 */
+    var temp = document.createElement('div');
+    temp.innerHTML = originals.get(node);
+    /* 재귀적으로 텍스트 노드 치환 */
+    var walker = document.createTreeWalker(temp, NodeFilter.SHOW_TEXT, null, false);
+    var tnode;
+    while((tnode = walker.nextNode())){
+      tnode.textContent = tnode.textContent
+        .replace(/([-+]?)₩([\d,]+)/g, function(m, sign, ns){
+          return sign+'₩'+Math.abs(fakeNum(parseInt(ns.replace(/,/g,''),10))).toLocaleString('ko-KR');
+        })
+        .replace(/(\+|-)([\d]{2,}(?:,[\d]{3})*)/g, function(m, sign, ns){
+          var n=parseInt(ns.replace(/,/g,''),10);
+          return (sign==='+'?'+':'-')+Math.abs(fakeNum(n)).toLocaleString('ko-KR');
+        })
+        .replace(/(?<![₩\d])([\d]{3,}(?:,[\d]{3})+)/g, function(m, ns){
+          return Math.abs(fakeNum(parseInt(ns.replace(/,/g,''),10))).toLocaleString('ko-KR');
+        });
+    }
+    node.innerHTML = temp.innerHTML;
+  });
+}
+
+function restoreScramble(originals){
+  originals.forEach(function(html, node){
+    if(node.parentNode) node.innerHTML = html;
+  });
+}
+
+function toggleHideAmount(){
+  if(_hideAmtActive) return; /* 진행 중엔 중복 클릭 무시 */
+  _hideAmtActive = true;
+  var btn = document.getElementById('hideAmtBtn');
+  if(btn){ btn.classList.add('active'); btn.textContent = '🙈 감추는 중...'; }
+
+  var originals = new Map();
+  var root = document.body;
+  applyScramble(root, originals);
+
+  _hideAmtTimer = setTimeout(function(){
+    restoreScramble(originals);
+    _hideAmtActive = false;
+    if(btn){ btn.classList.remove('active'); btn.textContent = '👁 금액 감추기'; }
+    /* 차트도 재렌더 */
+    var ent = getMonthEntries();
+    requestAnimationFrame(function(){ drawTotalChart(ent); drawDeltaChart(ent); });
+  }, 5000);
+}
+
 
 function init(){
   loadUrl();
