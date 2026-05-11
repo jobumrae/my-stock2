@@ -582,15 +582,6 @@ body.light-mode .hist-entry {
 }
 .pc-theme-btn:hover { background: var(--surface3); color: var(--text); }
 
-.sub-save-btn { width:100%; padding:10px; background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:inherit; font-size:13px; font-weight:600; border-radius:10px; cursor:pointer; margin-top:6px; transition:all .15s; }
-.sub-save-btn:hover { background:var(--surface3); }
-.add-row-btn { width:100%; padding:8px; background:rgba(52,211,153,.08); border:1px dashed rgba(52,211,153,.3); color:#34d399; font-size:13px; font-weight:600; border-radius:10px; cursor:pointer; margin-top:6px; font-family:inherit; }
-.add-row-btn:hover { background:rgba(52,211,153,.15); }
-.extra-row { display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px; margin-bottom:5px; }
-.extra-row input { background:var(--surface2); border:1px solid var(--border); border-radius:7px; color:var(--text); font-size:12px; padding:5px 8px; outline:none; font-family:'DM Mono',monospace; }
-.extra-row .ei-amt { width:110px; text-align:right; }
-.extra-row .ei-src { flex:1; }
-.extra-row .ei-del { background:rgba(251,113,133,.1); border:1px solid rgba(251,113,133,.2); color:#fb7185; width:26px; height:26px; border-radius:6px; cursor:pointer; font-size:14px; flex-shrink:0; }
 
 .all-days-btn { background:var(--surface2) !important; border:1px solid var(--border) !important; color:var(--text2) !important; margin-left:2px; }
 .all-days-btn.on { background:var(--accent2) !important; color:#0a0e1a !important; border-color:var(--accent2) !important; }
@@ -705,28 +696,7 @@ body.light-mode .hist-entry {
     <button class="save-btn" onclick="saveEntry()">💾 저장하기</button>
     <div class="save-msg" id="smsg"></div>
 
-    <!-- 대출금 -->
-    <div class="broker-hdr" style="margin-top:14px">
-      <span class="broker-badge" style="background:rgba(251,113,133,.12);color:#fb7185;border:1px solid rgba(251,113,133,.3)">대출금</span>
-      <div class="broker-line"></div>
-    </div>
-    <div class="acc-row"><span class="acc-name" style="color:#fb7185">카카오</span><input class="acc-input" type="text" inputmode="numeric" id="loan0" placeholder="0" oninput="onNum(this)" style="border-color:rgba(251,113,133,.3)"></div>
-    <div class="acc-row"><span class="acc-name" style="color:#fb7185">신한생명</span><input class="acc-input" type="text" inputmode="numeric" id="loan1" placeholder="0" oninput="onNum(this)" style="border-color:rgba(251,113,133,.3)"></div>
-    <div class="acc-row" style="margin-bottom:6px"><span class="acc-name" style="color:#fb7185">하나전세</span><input class="acc-input" type="text" inputmode="numeric" id="loan2" placeholder="0" oninput="onNum(this)" style="border-color:rgba(251,113,133,.3)"></div>
-    <button class="sub-save-btn" onclick="saveLoan()">💾 대출금 저장</button>
-    <div class="save-msg" id="loanMsg"></div>
-
-    <!-- 추가 예수금 투입 -->
-    <div class="broker-hdr" style="margin-top:14px">
-      <span class="broker-badge" style="background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3)">추가 예수금 투입</span>
-      <div class="broker-line"></div>
-    </div>
-    <div id="extraItems"></div>
-    <button class="add-row-btn" onclick="addExtraRow()">＋ 항목 추가</button>
-    <button class="sub-save-btn" onclick="saveExtra()">💾 추가 예수금 저장</button>
-    <div class="save-msg" id="extraMsg"></div>
-
-        <!-- 일간 수익 실현 금액 -->
+    <!-- 일간 수익 실현 금액 -->
     <div class="broker-hdr" style="margin-top:14px">
       <span class="broker-badge" style="background:rgba(96,165,250,.12);color:#60a5fa;border:1px solid rgba(96,165,250,.3)">일간 수익 실현 금액</span>
       <div class="broker-line"></div>
@@ -1071,8 +1041,6 @@ function pullFromSheets(){
       }
       MEM.stockData=clean;
       if(result.meta){
-        try{ if(result.meta.loanData){ loanData=JSON.parse(result.meta.loanData); buildLoanUI(); } }catch(e){}
-        try{ if(result.meta.extraData){ extraData=JSON.parse(result.meta.extraData); buildExtraUI(); } }catch(e){}
         try{ if(result.meta.dailyProfits) dailyProfits=JSON.parse(result.meta.dailyProfits); }catch(e){}
       }
       var cnt=Object.keys(clean).length;
@@ -1785,67 +1753,6 @@ function loadTheme(){
   }catch(e){}
 }
 
-/* ═══ 대출금 / 추가예수금 ═══ */
-var loanData = {0:0, 1:0, 2:0};
-var extraData = [];
-
-function buildLoanUI(){
-  for(var i=0;i<3;i++){
-    var el=document.getElementById('loan'+i);
-    if(el) el.value=loanData[i]?Number(loanData[i]).toLocaleString('ko-KR'):'';
-  }
-}
-function saveLoan(){
-  if(!MEM.scriptUrl){ alert('Google Sheets URL을 연결하세요.'); return; }
-  for(var i=0;i<3;i++){
-    var el=document.getElementById('loan'+i);
-    var v=el?el.value.replace(/,/g,''):'';
-    loanData[i]=v===''?0:Number(v);
-  }
-  var msg=document.getElementById('loanMsg'); msg.textContent='⏳ 저장 중...';
-  showLoader('대출금 저장 중...');
-  doPost({action:'saveMeta',key:'loanData',value:JSON.stringify(loanData)},function(ok){
-    hideLoader();
-    msg.textContent=ok?'✓ 대출금 저장 완료':'❌ 저장 실패';
-    setTimeout(function(){ msg.textContent=''; },2000);
-    if(ok) setTimeout(function(){ pullFromSheets(); },2000);
-  });
-}
-function getLoanTotal(){ var s=0; for(var i=0;i<3;i++) s+=Number(loanData[i])||0; return s; }
-
-function buildExtraUI(){
-  var c=document.getElementById('extraItems'); if(!c) return; c.innerHTML='';
-  for(var i=0;i<extraData.length;i++){
-    (function(idx){
-      var row=document.createElement('div'); row.className='extra-row';
-      var amt=extraData[idx].amount?Number(extraData[idx].amount).toLocaleString('ko-KR'):'';
-      row.innerHTML='<input class="ei-amt" type="text" inputmode="numeric" placeholder="금액" value="'+amt+'" oninput="onNum(this)" onchange="updateExtra('+idx+',\'amount\',this.value)">'+
-        '<input class="ei-src" type="text" placeholder="투입 출처" value="'+(extraData[idx].source||'')+'" oninput="updateExtra('+idx+',\'source\',this.value)">'+
-        '<button class="ei-del" onclick="removeExtra('+idx+')">✕</button>';
-      c.appendChild(row);
-    })(i);
-  }
-}
-function addExtraRow(){ extraData.push({amount:'',source:''}); buildExtraUI(); }
-function updateExtra(idx,key,val){
-  if(!extraData[idx]) return;
-  if(key==='amount'){ val=val.replace(/,/g,''); extraData[idx].amount=val===''?'':Number(val); }
-  else extraData[idx].source=val;
-}
-function removeExtra(idx){ extraData.splice(idx,1); buildExtraUI(); }
-function saveExtra(){
-  if(!MEM.scriptUrl){ alert('Google Sheets URL을 연결하세요.'); return; }
-  var msg=document.getElementById('extraMsg'); msg.textContent='⏳ 저장 중...';
-  showLoader('추가 예수금 저장 중...');
-  doPost({action:'saveMeta',key:'extraData',value:JSON.stringify(extraData)},function(ok){
-    hideLoader();
-    msg.textContent=ok?'✓ 추가 예수금 저장 완료':'❌ 저장 실패';
-    setTimeout(function(){ msg.textContent=''; },2000);
-    if(ok) setTimeout(function(){ pullFromSheets(); },2000);
-  });
-}
-function getExtraTotal(){ var s=0; for(var i=0;i<extraData.length;i++) s+=Number(extraData[i].amount)||0; return s; }
-
 /* ═══ 전체 일자 차트 ═══ */
 var showAllDays = false;
 var KR_HOLIDAYS = {
@@ -1887,7 +1794,7 @@ function init(){
   var td=todayStr(),tp=td.split('-');
   selectedDate=td; calYear=parseInt(tp[0],10); calMonth=parseInt(tp[1],10)-1;
   dashYear=calYear; dashMonth=calMonth; dashEntryIdx=-1;
-  pCalYear=calYear; pCalMonth2=calMonth; loadTheme(); buildCal(); buildGrid(); buildPCal(); buildLoanUI(); buildExtraUI(); renderDash(); renderHist();
+  pCalYear=calYear; pCalMonth2=calMonth; loadTheme(); buildCal(); buildGrid(); buildPCal(); renderDash(); renderHist();
   initResponsive();
   if(MEM.scriptUrl){
     setDot('ing','Google Sheets 불러오는 중...');
