@@ -1620,22 +1620,37 @@ function drawKpi(entries){
   loanBtn.style.color=loanExcludeMode?'#fb7185':'var(--text2)';
   document.getElementById('totalLbl').innerHTML='현재 총 자산'+(loanExcludeMode?' <span style="font-size:10px;color:#fb7185">(대출 -&#8361;200,000,000)</span>':'');
   var tv=document.getElementById('totalVal'); tv.textContent=fmtW(dispTotal); tv.className='kpi-val'; tv.style.paddingRight='80px';
-  var ts=document.getElementById('totalSub'); ts.textContent='전일 대비 '+fmtD(dDay); ts.className='kpi-sub '+clsN(dDay);
 
-  /* 복리 수익 */
+  /* totalSub: 전일 대비 + 오른쪽에 일간 수익 실현 금액 (노란색) */
+  var curDateStr = entries[idx][0];
+  var dayProfit  = dailyProfits[curDateStr] ? Number(dailyProfits[curDateStr]) : 0;
+  var ts=document.getElementById('totalSub');
+  ts.className='kpi-sub '+clsN(dDay);
+  ts.innerHTML='전일 대비 '+fmtD(dDay)+
+    (dayProfit!==0
+      ? ' &nbsp;<span style="color:#fbbf24;font-size:10px;font-weight:700">실현 '+fmtW(dayProfit)+'</span>'
+      : '');
+
+  /* 복리 수익 — dMonth = 이달 첫날 대비 현재 증감액 */
   var compoundVal, compoundPct;
   if(compoundPeriod==='month'){
-    compoundVal=dMonth; compoundPct=pct;
+    compoundVal=dMonth;                                   /* 월간: 이달 첫 기록 대비 */
+    compoundPct=first?((dMonth/first)*100).toFixed(2):'0.00';
   } else {
-    var yc=getYearCompound(entries); compoundVal=yc.val; compoundPct=yc.pct;
+    var yc=getYearCompound(entries); compoundVal=yc.val; compoundPct=yc.pct;  /* 연간 */
   }
   document.getElementById('compoundTitle').textContent=(compoundPeriod==='month'?'월간':'연간')+'증감 (복리)';
   document.getElementById('cPeriodBtn').textContent=(compoundPeriod==='month'?'월간':'연간');
   document.getElementById('cPeriodBtn').style.background=(compoundPeriod==='month'?'var(--surface3)':'var(--accent2)');
   document.getElementById('cPeriodBtn').style.borderColor=(compoundPeriod==='month'?'var(--border2)':'var(--accent2)');
   document.getElementById('cPeriodBtn').style.color=(compoundPeriod==='month'?'var(--text2)':'#0a0e1a');
-  var cv=document.getElementById('compoundVal'); cv.textContent=fmtD(compoundVal); cv.className='kpi-val '+clsN(compoundVal);
-  var cs=document.getElementById('compoundSub'); cs.textContent=(compoundVal>=0?'+':'')+compoundPct+'%'; cs.className='kpi-sub '+clsN(compoundVal);
+  /* compoundVal: 증감액(fmtD) — 총자산(fmtW) 아님 */
+  var cv=document.getElementById('compoundVal');
+  cv.textContent=(compoundVal===0)?'±\u20a90':(compoundVal>0?'+\u20a9'+Math.abs(compoundVal).toLocaleString('ko-KR'):'-\u20a9'+Math.abs(compoundVal).toLocaleString('ko-KR'));
+  cv.className='kpi-val '+clsN(compoundVal);
+  var cs=document.getElementById('compoundSub');
+  cs.textContent=(compoundVal>=0?'+':'')+compoundPct+'%';
+  cs.className='kpi-sub '+clsN(compoundVal);
 
   /* 실현 수익 */
   var profitVal=(profitPeriod==='month')?getMonthProfit():getYearProfit();
