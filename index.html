@@ -418,8 +418,7 @@ tbody tr:last-child td { border-bottom:none; }
   .chart-row { grid-template-columns: 1fr; gap: 8px; margin-bottom: 8px; }
   .cbox { padding: 12px 10px; }
   .cbox-hdr { margin-bottom: 8px; }
-  canvas#cvTotal { aspect-ratio: 2/1 !important; height: auto !important; max-height: 50vw; }
-  canvas#cvDelta { aspect-ratio: 2/1 !important; height: auto !important; max-height: 50vw; }
+  /* 차트 — aspect-ratio:3/1 인라인으로 고정 */
 
   /* 계좌 테이블 */
   .tbox { border-radius: 12px; }
@@ -466,8 +465,7 @@ tbody tr:last-child td { border-bottom:none; }
 @media (orientation: landscape) and (max-width: 900px) {
   .left-inner { padding-left: max(14px, calc(env(safe-area-inset-left, 0px) + 10px)); }
   .topbar { padding-left: max(14px, calc(env(safe-area-inset-left, 0px) + 8px)); }
-  canvas#cvTotal { max-height: 35vw; }
-  canvas#cvDelta { max-height: 35vw; }
+  /* 차트 aspect-ratio 인라인 고정 */
 }
 
 /* ── 화이트 모드 ── */
@@ -741,7 +739,7 @@ body.light-mode .hist-entry {
               <button class="ct-btn all-days-btn" id="allDaysBtn1" onclick="toggleAllDays()">전체 일자</button>
             </div>
           </div>
-          <canvas id="cvTotal" height="130"></canvas>
+          <canvas id="cvTotal" style="width:100%;aspect-ratio:3/1;display:block"></canvas>
         </div>
         <!-- 일별 증감 -->
         <div class="cbox">
@@ -755,7 +753,7 @@ body.light-mode .hist-entry {
               <button class="ct-btn all-days-btn" id="allDaysBtn2" onclick="toggleAllDays()">전체 일자</button>
             </div>
           </div>
-          <canvas id="cvDelta" height="130"></canvas>
+          <canvas id="cvDelta" style="width:100%;aspect-ratio:3/1;display:block"></canvas>
           <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap" id="dleg"></div>
         </div>
       </div>
@@ -826,12 +824,15 @@ function mobGo(tab){
     if(tab==='history'){
       renderHist();
     } else {
-      renderDash(true); /* 차트는 아직 패널이 hidden이므로 skip */
-      setTimeout(function(){
-        /* 패널 완전 렌더 후 정확한 너비로 차트 그리기 */
-        var ent=getChartEntries();
-        requestAnimationFrame(function(){ drawTotalChart(ent); drawDeltaChart(ent); });
-      }, 200);
+      renderDash(true);
+      /* rAF 두 번 중첩: 첫 번째는 display:block 반영, 두 번째는 레이아웃 확정 후 */
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){
+          var ent=getChartEntries();
+          drawTotalChart(ent);
+          drawDeltaChart(ent);
+        });
+      });
     }
   }
   var mtabs = document.querySelectorAll('.mob-tab');
@@ -1256,10 +1257,13 @@ function goTab(tab){
   if(tab==='history') renderHist();
   else {
     renderDash(true);
-    setTimeout(function(){
-      var ent=getChartEntries();
-      requestAnimationFrame(function(){ drawTotalChart(ent); drawDeltaChart(ent); });
-    }, 200);
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        var ent=getChartEntries();
+        drawTotalChart(ent);
+        drawDeltaChart(ent);
+      });
+    });
   }
 }
 
@@ -1445,16 +1449,23 @@ function getCtx(id){
   var cv  = document.getElementById(id);
   var ctx = cv.getContext('2d');
   var dpr = window.devicePixelRatio || 1;
-  /* getBoundingClientRect로 실제 렌더 너비를 정확히 읽음
-     offsetWidth는 display:none 직후엔 0이 될 수 있음 */
-  var rect = cv.getBoundingClientRect();
-  var w = rect.width || cv.offsetWidth || (cv.parentElement ? cv.parentElement.getBoundingClientRect().width : 0) || 500;
-  var h = parseInt(cv.getAttribute('height')) || 130;
-  /* dpr 반영해서 고해상도 */
+
+  /* 부모의 실제 너비를 기준으로 계산 (canvas 자신은 0일 수 있음) */
+  var parent = cv.parentElement;
+  var w = 0;
+  while(parent && w === 0){
+    var pr = parent.getBoundingClientRect();
+    w = Math.floor(pr.width);
+    parent = parent.parentElement;
+  }
+  if(w < 10) w = 500; /* 최후 fallback */
+
+  /* 높이: aspect-ratio 3:1 기준 */
+  var h = Math.round(w / 3);
+
+  /* canvas 내부 픽셀 해상도만 설정 (style은 건드리지 않음) */
   cv.width  = Math.round(w * dpr);
   cv.height = Math.round(h * dpr);
-  cv.style.width  = w + 'px';
-  cv.style.height = h + 'px';
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, w, h);
   return { ctx: ctx, w: w, h: h };
