@@ -240,7 +240,7 @@ body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; background: var(--
 
 /* ── KPI cards ── */
 .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; }
-.kpi { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 14px; position:relative; overflow:hidden; transition:border-color .2s; }
+.kpi { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 14px; position:relative; transition:border-color .2s; }
 .kpi::before { content:''; position:absolute; inset:0; border-radius:14px; opacity:0; transition:opacity .2s; }
 .kpi:hover { border-color:var(--border2); }
 .kpi.wide { grid-column:span 2; }
@@ -769,7 +769,37 @@ body.light-mode .hist-entry {
         </div>
       </div>
 
-      <div class="kpi-grid" id="kpiGrid"></div>
+      <!-- KPI 고정 구조 — JS는 내용만 교체 -->
+      <div class="kpi-grid" id="kpiGrid">
+        <!-- 총자산 카드 -->
+        <div class="kpi wide" id="kpi-total">
+          <div class="kpi-glow" style="background:rgba(200,160,106,.4)"></div>
+          <button id="loanExclBtn" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all .15s;background:var(--surface3);border:1px solid var(--border2);color:var(--text2)">대출포함</button>
+          <div class="kpi-lbl" id="totalLbl">현재 총 자산</div>
+          <div class="kpi-val" id="totalVal" style="padding-right:80px">—</div>
+          <div class="kpi-sub" id="totalSub">전일 대비 —</div>
+        </div>
+        <!-- 복리 수익 카드 -->
+        <div class="kpi" id="kpi-compound">
+          <div class="kpi-glow" style="background:rgba(248,113,113,.3)"></div>
+          <div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;gap:4px">
+            <span id="compoundTitle">월간증감 (복리)</span>
+            <button id="cPeriodBtn" style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;cursor:pointer;border:1px solid;background:var(--accent2);color:#0a0e1a;border-color:var(--accent2)">월간</button>
+          </div>
+          <div class="kpi-val" id="compoundVal">—</div>
+          <div class="kpi-sub" id="compoundSub">—</div>
+        </div>
+        <!-- 실현 수익 카드 -->
+        <div class="kpi" id="kpi-profit">
+          <div class="kpi-glow" style="background:rgba(96,165,250,.25)"></div>
+          <div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;gap:4px">
+            <span id="profitTitle">월간증감 (실현 수익)</span>
+            <button id="pPeriodBtn" style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;cursor:pointer;border:1px solid;background:var(--accent2);color:#0a0e1a;border-color:var(--accent2)">월간</button>
+          </div>
+          <div class="kpi-val" id="profitVal">—</div>
+          <div class="kpi-sub" id="profitSub">—</div>
+        </div>
+      </div>
       <div class="broker-pills" id="brokerPills"></div>
 
       <div class="chart-row">
@@ -1544,18 +1574,31 @@ function renderDash(skipCharts){
   }
 }
 
-function toggleLoanExclude(){
-  loanExcludeMode = !loanExcludeMode;
-  drawKpi(getMonthEntries());
+/* KPI 버튼 이벤트 — 앱 시작 시 한 번만 등록 */
+function initKpiButtons(){
+  document.getElementById('loanExclBtn').onclick=function(){
+    loanExcludeMode=!loanExcludeMode; drawKpi(getMonthEntries());
+  };
+  document.getElementById('cPeriodBtn').onclick=function(){
+    compoundPeriod=(compoundPeriod==='month')?'year':'month'; drawKpi(getMonthEntries());
+  };
+  document.getElementById('pPeriodBtn').onclick=function(){
+    profitPeriod=(profitPeriod==='month')?'year':'month'; drawKpi(getMonthEntries());
+  };
 }
-window.toggleLoanExclude = toggleLoanExclude;
 
 function drawKpi(entries){
-  var c=document.getElementById('kpiGrid');
+  /* 데이터 없을 때 */
   if(!entries.length){
-    c.innerHTML='<div class="kpi wide" style="grid-column:span 4"><div class="kpi-lbl">이 달 데이터 없음</div><div class="kpi-val flat" style="font-size:15px">왼쪽에서 날짜를 선택하고 금액을 입력하세요</div></div>';
+    document.getElementById('totalVal').textContent='—';
+    document.getElementById('totalSub').textContent='이 달 데이터 없음';
+    document.getElementById('compoundVal').textContent='—';
+    document.getElementById('compoundSub').textContent='—';
+    document.getElementById('profitVal').textContent='—';
+    document.getElementById('profitSub').textContent='—';
     return;
   }
+
   var idx=dashEntryIdx===-1?entries.length-1:dashEntryIdx;
   if(idx>=entries.length) idx=entries.length-1;
   var last=entries[idx][1], total=getTotal(last);
@@ -1563,74 +1606,35 @@ function drawKpi(entries){
   var first=getTotal(entries[0][1]), dDay=total-prev, dMonth=total-first;
   var pct=first?((dMonth/first)*100).toFixed(2):'0.00';
 
-  /* 표시 금액 — 대출제외 모드면 2억 차감 */
-  var dispTotal = loanExcludeMode ? total - LOAN_FIXED : total;
-  var btnLabel  = loanExcludeMode ? '대출제외' : '대출포함';
-  var btnStyle  = loanExcludeMode
-    ? 'background:rgba(251,113,133,.25);border:1px solid rgba(251,113,133,.5);color:#fb7185;'
-    : 'background:var(--surface3);border:1px solid var(--border2);color:var(--text2);';
+  /* 총자산 */
+  var dispTotal=loanExcludeMode?total-LOAN_FIXED:total;
+  var loanBtn=document.getElementById('loanExclBtn');
+  loanBtn.textContent=loanExcludeMode?'대출제외':'대출포함';
+  loanBtn.style.background=loanExcludeMode?'rgba(251,113,133,.25)':'var(--surface3)';
+  loanBtn.style.borderColor=loanExcludeMode?'rgba(251,113,133,.5)':'var(--border2)';
+  loanBtn.style.color=loanExcludeMode?'#fb7185':'var(--text2)';
+  document.getElementById('totalLbl').innerHTML='현재 총 자산'+(loanExcludeMode?' <span style="font-size:10px;color:#fb7185">(대출 -&#8361;200,000,000)</span>':'');
+  var tv=document.getElementById('totalVal'); tv.textContent=fmtW(dispTotal); tv.className='kpi-val'; tv.style.paddingRight='80px';
+  var ts=document.getElementById('totalSub'); ts.textContent='전일 대비 '+fmtD(dDay); ts.className='kpi-sub '+clsN(dDay);
 
-  /* 복리 수익 계산 */
-  var compoundVal, compoundPct, compoundLbl;
+  /* 복리 수익 */
+  var compoundVal, compoundPct;
   if(compoundPeriod==='month'){
     compoundVal=dMonth; compoundPct=pct;
-    compoundLbl='월간';
   } else {
-    var yc=getYearCompound(entries);
-    compoundVal=yc.val; compoundPct=yc.pct;
-    compoundLbl='연간';
+    var yc=getYearCompound(entries); compoundVal=yc.val; compoundPct=yc.pct;
   }
+  document.getElementById('compoundTitle').textContent=(compoundPeriod==='month'?'월간':'연간')+'증감 (복리)';
+  document.getElementById('cPeriodBtn').textContent=(compoundPeriod==='month'?'월간':'연간');
+  var cv=document.getElementById('compoundVal'); cv.textContent=fmtD(compoundVal); cv.className='kpi-val '+clsN(compoundVal);
+  var cs=document.getElementById('compoundSub'); cs.textContent=(compoundVal>=0?'+':'')+compoundPct+'%'; cs.className='kpi-sub '+clsN(compoundVal);
 
-  /* 실현 수익 계산 */
-  var profitVal, profitLbl;
-  if(profitPeriod==='month'){
-    profitVal=getMonthProfit(); profitLbl='월간';
-  } else {
-    profitVal=getYearProfit(); profitLbl='연간';
-  }
-
-  /* 토글 버튼 스타일 — 따옴표 없이 */
-  var tbBase='font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;cursor:pointer;border:1px solid;transition:all .15s;';
-  var tbOn  = tbBase+'background:var(--accent2);color:#0a0e1a;border-color:var(--accent2);';
-  var tbOff = tbBase+'background:var(--surface3);color:var(--text2);border-color:var(--border2);';
-
-  /* 버튼에 표시되는 텍스트 = 현재 상태 (월간이면 '월간', 연간이면 '연간')
-     누르면 반대로 전환 */
-  var cBtnTxt = compoundPeriod==='month' ? '월간' : '연간';
-  var pBtnTxt = profitPeriod==='month'   ? '월간' : '연간';
-
-  c.innerHTML=
-    '<div class="kpi wide" style="position:relative">'+
-      '<div class="kpi-glow" style="background:rgba(200,160,106,.4)"></div>'+
-      '<button id="loanExclBtn" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);'+btnStyle+'font-size:11px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all .15s">'+btnLabel+'</button>'+
-      '<div class="kpi-lbl">현재 총 자산'+(loanExcludeMode?' <span style="font-size:10px;color:#fb7185">(대출 -&#8361;200,000,000)</span>':'')+'</div>'+
-      '<div class="kpi-val" style="padding-right:80px">'+fmtW(dispTotal)+'</div>'+
-      '<div class="kpi-sub '+clsN(dDay)+'">전일 대비 '+fmtD(dDay)+'</div>'+
-    '</div>'+
-    '<div class="kpi"><div class="kpi-glow" style="background:rgba(248,113,113,.3)"></div>'+
-      '<div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;gap:4px">'+
-        '<span>'+compoundLbl+'증감 (복리)</span>'+
-        '<button id="cPeriodBtn" style="'+tbOn+'">'+cBtnTxt+'</button>'+
-      '</div>'+
-      '<div class="kpi-val '+clsN(compoundVal)+'">'+fmtD(compoundVal)+'</div>'+
-      '<div class="kpi-sub '+clsN(compoundVal)+'">'+(compoundVal>=0?'+':'')+compoundPct+'%</div>'+
-    '</div>'+
-    '<div class="kpi"><div class="kpi-glow" style="background:rgba(96,165,250,.25)"></div>'+
-      '<div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;gap:4px">'+
-        '<span>'+profitLbl+'증감 (실현)</span>'+
-        '<button id="pPeriodBtn" style="'+tbOn+'">'+pBtnTxt+'</button>'+
-      '</div>'+
-      '<div class="kpi-val '+clsN(profitVal)+'">'+fmtW(profitVal)+'</div>'+
-      '<div class="kpi-sub flat">'+dashYear+'년 '+(profitPeriod==='month'?(dashMonth+1)+'월 ':'')+'누적</div>'+
-    '</div>';
-
-  /* DOM 생성 후 즉시 이벤트 연결 */
-  var leb=c.querySelector('#loanExclBtn');
-  if(leb) leb.onclick=function(){ loanExcludeMode=!loanExcludeMode; drawKpi(getMonthEntries()); };
-  var cpb=c.querySelector('#cPeriodBtn');
-  if(cpb) cpb.onclick=function(){ compoundPeriod=compoundPeriod==='month'?'year':'month'; drawKpi(getMonthEntries()); };
-  var ppb=c.querySelector('#pPeriodBtn');
-  if(ppb) ppb.onclick=function(){ profitPeriod=profitPeriod==='month'?'year':'month'; drawKpi(getMonthEntries()); };
+  /* 실현 수익 */
+  var profitVal=(profitPeriod==='month')?getMonthProfit():getYearProfit();
+  document.getElementById('profitTitle').textContent=(profitPeriod==='month'?'월간':'연간')+'증감 (실현 수익)';
+  document.getElementById('pPeriodBtn').textContent=(profitPeriod==='month'?'월간':'연간');
+  var pv=document.getElementById('profitVal'); pv.textContent=fmtW(profitVal); pv.className='kpi-val '+clsN(profitVal);
+  var ps=document.getElementById('profitSub'); ps.textContent=dashYear+'년 '+(profitPeriod==='month'?(dashMonth+1)+'월 ':'')+'누적'; ps.className='kpi-sub flat';
 }
 
 function drawBrokerPills(entries){
@@ -2006,7 +2010,7 @@ function init(){
   selectedDate=td; calYear=parseInt(tp[0],10); calMonth=parseInt(tp[1],10)-1;
   dashYear=calYear; dashMonth=calMonth; dashEntryIdx=-1;
   pCalYear=calYear; pCalMonth2=calMonth;  /* 미니 달력 초기화 */
-  buildCal(); buildGrid(); buildPCal(); renderDash(); renderHist();
+  buildCal(); buildGrid(); buildPCal(); initKpiButtons(); renderDash(); renderHist();
   initResponsive();
   if(MEM.scriptUrl){
     setDot('ing','Google Sheets 불러오는 중...');
