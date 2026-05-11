@@ -472,34 +472,35 @@ tbody tr:last-child td { border-bottom:none; }
 
 /* ── 화이트 모드 ── */
 body.light-mode {
-  --bg: #e8edf8;         /* 연한 블루 그레이 배경 */
-  --bg2: #dde4f4;
-  --surface: #f4f7ff;    /* 카드: 거의 흰색에 약한 블루 틴트 */
-  --surface2: #e8edf8;
-  --surface3: #dce3f2;
-  --border: rgba(60,100,200,.12);
-  --border2: rgba(60,100,200,.22);
-  --text: #0d1a3a;
-  --text2: #3a5080;
-  --text3: #7090b8;
-  --accent: #7c5c3a;
-  --accent2: #2050a0;
-  --up: #c0392b;
-  --down: #2060b0;
-  --ki: #c47000;
-  --to: #2060b0;
-  --ko: #1a6b40;
-  --ye: #6a3d8f;
-  --loan: #c0392b;
-  --extra: #1a6b40;
-  --glow-ki: rgba(196,112,0,.08);
-  --glow-to: rgba(32,96,176,.08);
-  --glow-ko: rgba(26,107,64,.08);
-  --glow-ye: rgba(106,61,143,.08);
+  /* 다크 모드 기준 명도 +50% — 블루 톤 유지 */
+  --bg: #344870;         /* #0a0e1a → +50% */
+  --bg2: #3d5480;        /* #0f1525 → +50% */
+  --surface: #4a5f90;    /* #1a2035 → +50% */
+  --surface2: #526aa0;   /* #1e2a45 → +50% */
+  --surface3: #5a74aa;   /* #243252 → +50% */
+  --border: rgba(160,200,255,.28);
+  --border2: rgba(180,215,255,.42);
+  --text: #f8faff;
+  --text2: #ccd8f4;
+  --text3: #9ab0d8;
+  --accent: #f0cc98;
+  --accent2: #b8ddff;
+  --up: #ffaaaa;
+  --down: #99d6ff;
+  --ki: #ffd060;
+  --to: #99d6ff;
+  --ko: #80f0b8;
+  --ye: #e8b8ff;
+  --loan: #ffaaaa;
+  --extra: #80f0b8;
+  --glow-ki: rgba(245,158,11,.25);
+  --glow-to: rgba(96,165,250,.25);
+  --glow-ko: rgba(52,211,153,.25);
+  --glow-ye: rgba(192,132,252,.25);
 }
-body.light-mode .topbar { background: rgba(220,228,248,.96); }
-body.light-mode .brand h1 { color: #0d1a3a; }
-body.light-mode .mob-nav { background: rgba(220,228,248,.97); }
+body.light-mode .topbar { background: rgba(38,55,98,.96); }
+body.light-mode .brand h1 { color: #f8faff; }
+body.light-mode .mob-nav { background: rgba(42,60,105,.97); }
 
 /* ── PC 테마 버튼 ── */
 .pc-theme-btn {
@@ -786,30 +787,34 @@ function isMobile(){ return window.innerWidth <= 768; }
 
 function mobGo(tab){
   if(!isMobile()) return;
-  // 패널 전환
   document.querySelector('.left').classList.remove('mob-active');
   document.querySelector('.right').classList.remove('mob-active');
   if(tab==='input'){
     document.querySelector('.left').classList.add('mob-active');
   } else {
     document.querySelector('.right').classList.add('mob-active');
-    // 대시보드/기록 내부 탭
     var pages=document.querySelectorAll('.rpage'), rtabs=document.querySelectorAll('.rtab');
     for(var i=0;i<pages.length;i++) pages[i].classList.remove('on');
     for(var j=0;j<rtabs.length;j++) rtabs[j].classList.remove('on');
     var targetId = tab==='history' ? 'r-history' : 'r-dashboard';
     var targetP = document.getElementById(targetId);
     if(targetP) targetP.classList.add('on');
-    if(tab==='history') renderHist();
-    else renderDash();
+    if(tab==='history'){
+      renderHist();
+    } else {
+      renderDash();
+      /* 패널이 display:block 된 후 offsetWidth가 확정되므로 지연 후 재draw */
+      setTimeout(function(){
+        var ent=getChartEntries();
+        requestAnimationFrame(function(){ drawTotalChart(ent); drawDeltaChart(ent); });
+      }, 150);
+    }
   }
-  // 바텀 탭 활성
   var mtabs = document.querySelectorAll('.mob-tab');
   var order = ['input','dashboard','history','settings'];
   for(var k=0;k<mtabs.length;k++) mtabs[k].classList.remove('on');
   var tidx = order.indexOf(tab);
   if(tidx>=0) mtabs[tidx].classList.add('on');
-  // 스크롤 상단
   window.scrollTo(0,0);
 }
 
@@ -1237,7 +1242,8 @@ function goTab(tab){
 ═══════════════════════════════════ */
 function setChartType(which,type,btn){
   chartTypes[which]=type;
-  var btns=btn.parentNode.querySelectorAll('.ct-btn');
+  /* all-days-btn 제외하고 ct-btn만 on 토글 */
+  var btns=btn.parentNode.querySelectorAll('.ct-btn:not(.all-days-btn)');
   for(var i=0;i<btns.length;i++) btns[i].classList.remove('on');
   btn.classList.add('on');
   var entries=getChartEntries();
@@ -1396,8 +1402,8 @@ function toggleAllDays(){
   showAllDays=!showAllDays;
   var b1=document.getElementById('allDaysBtn1'),b2=document.getElementById('allDaysBtn2');
   if(showAllDays){
-    if(b1){b1.classList.add('on');b1.textContent='입력 일자 기준';}
-    if(b2){b2.classList.add('on');b2.textContent='입력 일자 기준';}
+    if(b1){b1.classList.add('on');b1.textContent='입력 일자';}
+    if(b2){b2.classList.add('on');b2.textContent='입력 일자';}
   } else {
     if(b1){b1.classList.remove('on');b1.textContent='전체 일자';}
     if(b2){b2.classList.remove('on');b2.textContent='전체 일자';}
@@ -1407,13 +1413,22 @@ function toggleAllDays(){
 }
 
 function getCtx(id){
-  var cv=document.getElementById(id),ctx=cv.getContext('2d');
-  var dpr=window.devicePixelRatio||1,w=cv.offsetWidth;
-  if(!w&&cv.parentElement) w=cv.parentElement.offsetWidth;
-  if(!w) w=500;
-  var h=parseInt(cv.getAttribute('height'))||130;
-  cv.width=w*dpr;cv.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
-  return {ctx:ctx,w:w,h:h};
+  var cv  = document.getElementById(id);
+  var ctx = cv.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  /* getBoundingClientRect로 실제 렌더 너비를 정확히 읽음
+     offsetWidth는 display:none 직후엔 0이 될 수 있음 */
+  var rect = cv.getBoundingClientRect();
+  var w = rect.width || cv.offsetWidth || (cv.parentElement ? cv.parentElement.getBoundingClientRect().width : 0) || 500;
+  var h = parseInt(cv.getAttribute('height')) || 130;
+  /* dpr 반영해서 고해상도 */
+  cv.width  = Math.round(w * dpr);
+  cv.height = Math.round(h * dpr);
+  cv.style.width  = w + 'px';
+  cv.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+  return { ctx: ctx, w: w, h: h };
 }
 function noData(ctx,w,h,msg){
   ctx.fillStyle='#5a5878';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText(msg,w/2,h/2);
