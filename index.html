@@ -1510,25 +1510,28 @@ function drawKpi(entries){
     profitVal=getYearProfit(); profitLbl='연간';
   }
 
-  /* 토글 버튼 공통 스타일 */
-  var tbBase='font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;cursor:pointer;font-family:\'Pretendard\',\'Noto Sans KR\',sans-serif;border:1px solid var(--border2);transition:all .15s;';
-  var tbOn =tbBase+'background:var(--accent2);color:#0f0f13;border-color:var(--accent2);';
-  var tbOff=tbBase+'background:var(--surface3);color:var(--text2);';
+  /* 토글 버튼 스타일 — 따옴표 없이 */
+  var tbBase='font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;cursor:pointer;border:1px solid;transition:all .15s;';
+  var tbOn  = tbBase+'background:var(--accent2);color:#0a0e1a;border-color:var(--accent2);';
+  var tbOff = tbBase+'background:var(--surface3);color:var(--text2);border-color:var(--border2);';
+
+  /* 버튼에 표시되는 텍스트 = 현재 상태 (월간이면 '월간', 연간이면 '연간')
+     누르면 반대로 전환 */
+  var cBtnTxt = compoundPeriod==='month' ? '월간' : '연간';
+  var pBtnTxt = profitPeriod==='month'   ? '월간' : '연간';
 
   c.innerHTML=
     '<div class="kpi wide" style="position:relative">'+
       '<div class="kpi-glow" style="background:rgba(200,160,106,.4)"></div>'+
-      '<button onclick="window.toggleLoanExclude()" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);'+btnStyle+'font-size:11px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;font-family:\'Pretendard\',\'Noto Sans KR\',sans-serif;white-space:nowrap;transition:all .15s">'+btnLabel+'</button>'+
-      '<div class="kpi-lbl">현재 총 자산'+(loanExcludeMode?' <span style="font-size:10px;color:#fb7185">(대출 -₩200,000,000)</span>':'')+'</div>'+
+      '<button id="loanExclBtn" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);'+btnStyle+'font-size:11px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all .15s">'+btnLabel+'</button>'+
+      '<div class="kpi-lbl">현재 총 자산'+(loanExcludeMode?' <span style="font-size:10px;color:#fb7185">(대출 -&#8361;200,000,000)</span>':'')+'</div>'+
       '<div class="kpi-val" style="padding-right:80px">'+fmtW(dispTotal)+'</div>'+
       '<div class="kpi-sub '+clsN(dDay)+'">전일 대비 '+fmtD(dDay)+'</div>'+
     '</div>'+
     '<div class="kpi"><div class="kpi-glow" style="background:rgba(248,113,113,.3)"></div>'+
       '<div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;gap:4px">'+
         '<span>'+compoundLbl+'증감 (복리)</span>'+
-        '<button onclick="window.toggleCompoundPeriod()" style="'+(compoundPeriod==='month'?tbOff:tbOn)+'">'+
-          (compoundPeriod==='month'?'연간':'월간')+
-        '</button>'+
+        '<button id="cPeriodBtn" style="'+tbOn+'">'+cBtnTxt+'</button>'+
       '</div>'+
       '<div class="kpi-val '+clsN(compoundVal)+'">'+fmtD(compoundVal)+'</div>'+
       '<div class="kpi-sub '+clsN(compoundVal)+'">'+(compoundVal>=0?'+':'')+compoundPct+'%</div>'+
@@ -1536,13 +1539,19 @@ function drawKpi(entries){
     '<div class="kpi"><div class="kpi-glow" style="background:rgba(96,165,250,.25)"></div>'+
       '<div class="kpi-lbl" style="display:flex;align-items:center;justify-content:space-between;gap:4px">'+
         '<span>'+profitLbl+'증감 (실현)</span>'+
-        '<button onclick="window.toggleProfitPeriod()" style="'+(profitPeriod==='month'?tbOff:tbOn)+'">'+
-          (profitPeriod==='month'?'연간':'월간')+
-        '</button>'+
+        '<button id="pPeriodBtn" style="'+tbOn+'">'+pBtnTxt+'</button>'+
       '</div>'+
       '<div class="kpi-val '+clsN(profitVal)+'">'+fmtW(profitVal)+'</div>'+
       '<div class="kpi-sub flat">'+dashYear+'년 '+(profitPeriod==='month'?(dashMonth+1)+'월 ':'')+'누적</div>'+
     '</div>';
+
+  /* DOM 생성 후 이벤트 직접 연결 — innerHTML onclick 파싱 문제 우회 */
+  var leb=document.getElementById('loanExclBtn');
+  if(leb) leb.onclick=function(){ window.toggleLoanExclude(); };
+  var cpb=document.getElementById('cPeriodBtn');
+  if(cpb) cpb.onclick=function(){ window.toggleCompoundPeriod(); };
+  var ppb=document.getElementById('pPeriodBtn');
+  if(ppb) ppb.onclick=function(){ window.toggleProfitPeriod(); };
 }
 
 function drawBrokerPills(entries){
